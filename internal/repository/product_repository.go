@@ -49,9 +49,7 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	var codes []domain.ProductCode
 	
 	query := r.db.WithContext(ctx).Model(&domain.ProductCode{})
-
-	// Senior Optimization: Use Joins for 1:1 and Preload for 1:N with targeted selects if possible
-	query = query.Joins("Type").
+	query = query.Preload("Type").
 		Preload("Products", func(db *gorm.DB) *gorm.DB {
 			return db.Order("products.color ASC")
 		})
@@ -64,6 +62,7 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	}
 	
 	query = query.Preload("Products.Variants.Size")
+	query = query.Preload("Products.Variants.CustomerType")
 
 	if name, ok := filter["name"].(string); ok && name != "" {
 		query = query.Where("product_codes.name ILIKE ?", "%"+name+"%")
@@ -73,9 +72,8 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 		query = query.Where("product_codes.product_type_id = ?", typeID)
 	}
 	
-	if productID, ok := filter["product_id"].(int); ok && productID != 0 {
-		// This filter seems to refer to a specific product within a code
-		query = query.Where("EXISTS (SELECT 1 FROM products p WHERE p.product_code_id = product_codes.id AND p.id = ?)", productID)
+	if codeID, ok := filter["product_code_id"].(int); ok && codeID != 0 {
+		query = query.Where("product_codes.id = ?", codeID)
 	}
 
 	err := query.Order("product_codes.updated_at DESC").Find(&codes).Error
@@ -85,7 +83,7 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 func (r *productRepository) GetCodeByID(ctx context.Context, id int) (*domain.ProductCode, error) {
 	var code domain.ProductCode
 	err := r.db.WithContext(ctx).
-		Joins("Type").
+		Preload("Type").
 		Preload("Products").
 		Preload("Products.Variants").
 		Preload("Products.Variants.Size").
@@ -126,8 +124,30 @@ func (r *productRepository) FetchPrices(ctx context.Context, filter map[string]i
 	return prices, err
 }
 
-func (r *productRepository) UpdateStock(ctx context.Context, id int, stock int) error {
-	return r.db.WithContext(ctx).Model(&domain.ProductPrice{}).Where("id = ?", id).Update("stock", stock).Error
+func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity int) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Update stock in product_prices
+		if err := tx.Model(&domain.ProductPrice{}).Where("id = ?", id).Update("stock", gorm.Expr("stock + ?", quantity)).Error; err != nil {
+			return err
+		}
+
+		// 2. Insert into product_stock_inputs (ProductStockLog)
+		log := domain.ProductStockLog{
+			ProductPriceID: id,
+			Quantity:       quantity,
+		}
+		if err := tx.Create(&log).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (r *productRepository) GetStockLogs(ctx context.Context, productPriceID int) ([]domain.ProductStockLog, error) {
+	var logs []domain.ProductStockLog
+	err := r.db.WithContext(ctx).Where("product_price_id = ?", productPriceID).Order("input_date DESC").Find(&logs).Error
+	return logs, err
 }
 
 func (r *productRepository) CreateProduct(ctx context.Context, product *domain.Product) error {

@@ -31,6 +31,13 @@ type ProductCodeResponse struct {
 	UpdatedAt     time.Time            `json:"updated_at"`
 	Type          *ProductTypeResponse `json:"type,omitempty"`
 	Products      []ProductSummary     `json:"products,omitempty"`
+	ProductSKUs   []ProductSKUGroup    `json:"product_skus,omitempty"`
+}
+
+type ProductSKUGroup struct {
+	CustomerTypeID   int              `json:"customer_type_id"`
+	CustomerTypeName string           `json:"customer_type_name"`
+	Products         []ProductSummary `json:"products"`
 }
 
 type ProductSummary struct {
@@ -43,11 +50,15 @@ type ProductSummary struct {
 }
 
 type PriceSummary struct {
-	ID            int     `json:"id"`
-	ProductSizeID int     `json:"product_size_id"`
-	SizeName      string  `json:"size_name"`
-	Price         float64 `json:"price"`
-	Stock         int     `json:"stock"`
+	ID              int                  `json:"id"`
+	ProductID       int                  `json:"product_id"`
+	ProductSizeID   int                  `json:"product_size_id"`
+	CustomerTypeID  int                  `json:"customer_type_id"`
+	Price           float64              `json:"price"`
+	Stock           int                  `json:"stock"`
+	Weight          int                  `json:"weight"`
+	ProductDiscount int                  `json:"product_discount"`
+	Size            *ProductSizeResponse `json:"size,omitempty"`
 }
 
 type ProductResponse struct {
@@ -129,7 +140,9 @@ func ToProductCodeResponse(c *domain.ProductCode) *ProductCodeResponse {
 	}
 
 	if len(c.Products) > 0 {
+		skuGroups := make(map[int]*ProductSKUGroup)
 		resp.Products = make([]ProductSummary, len(c.Products))
+
 		for i, p := range c.Products {
 			summary := ProductSummary{
 				ID:        p.ID,
@@ -142,16 +155,63 @@ func ToProductCodeResponse(c *domain.ProductCode) *ProductCodeResponse {
 			if len(p.Variants) > 0 {
 				summary.Variants = make([]PriceSummary, len(p.Variants))
 				for j, v := range p.Variants {
-					summary.Variants[j] = PriceSummary{
-						ID:            v.ID,
-						ProductSizeID: v.ProductSizeID,
-						SizeName:      v.Size.Name,
-						Price:         v.Price,
-						Stock:         v.Stock,
+					priceResp := PriceSummary{
+						ID:              v.ID,
+						ProductID:       v.ProductID,
+						ProductSizeID:   v.ProductSizeID,
+						CustomerTypeID:  v.CustomerTypeID,
+						Price:           v.Price,
+						Stock:           v.Stock,
+						Weight:          v.Weight,
+						ProductDiscount: v.ProductDiscount,
+					}
+					if v.Size != nil {
+						priceResp.Size = ToProductSizeResponse(v.Size)
+					}
+					summary.Variants[j] = priceResp
+
+					// Grouping by Customer Type
+					cTypeID := v.CustomerTypeID
+					if _, ok := skuGroups[cTypeID]; !ok {
+						name := ""
+						if v.CustomerType != nil {
+							name = v.CustomerType.Name
+						}
+						skuGroups[cTypeID] = &ProductSKUGroup{
+							CustomerTypeID:   cTypeID,
+							CustomerTypeName: name,
+							Products:         []ProductSummary{},
+						}
+					}
+
+					group := skuGroups[cTypeID]
+					// Find if the product is already in this group
+					productIndex := -1
+					for idx, existingProd := range group.Products {
+						if existingProd.ID == p.ID {
+							productIndex = idx
+							break
+						}
+					}
+
+					if productIndex == -1 {
+						// Add product to group with this specific variant
+						newProductSummary := summary
+						newProductSummary.Variants = []PriceSummary{priceResp}
+						group.Products = append(group.Products, newProductSummary)
+					} else {
+						// Append variant to existing product in group
+						group.Products[productIndex].Variants = append(group.Products[productIndex].Variants, priceResp)
 					}
 				}
 			}
 			resp.Products[i] = summary
+		}
+
+		// Convert map to slice
+		resp.ProductSKUs = make([]ProductSKUGroup, 0, len(skuGroups))
+		for _, g := range skuGroups {
+			resp.ProductSKUs = append(resp.ProductSKUs, *g)
 		}
 	}
 
@@ -192,19 +252,41 @@ func ToProductResponse(p *domain.Product) *ProductResponse {
 	if len(p.Variants) > 0 {
 		resp.Variants = make([]PriceSummary, len(p.Variants))
 		for i, v := range p.Variants {
-			sizeName := ""
-			if v.Size != nil {
-				sizeName = v.Size.Name
-			}
 			resp.Variants[i] = PriceSummary{
-				ID:            v.ID,
-				ProductSizeID: v.ProductSizeID,
-				SizeName:      sizeName,
-				Price:         v.Price,
-				Stock:         v.Stock,
+				ID:              v.ID,
+				ProductID:       v.ProductID,
+				ProductSizeID:   v.ProductSizeID,
+				CustomerTypeID:  v.CustomerTypeID,
+				Price:           v.Price,
+				Stock:           v.Stock,
+				Weight:          v.Weight,
+				ProductDiscount: v.ProductDiscount,
+				Size:            ToProductSizeResponse(v.Size),
 			}
 		}
 	}
 
 	return resp
+}
+
+type ProductStockLogResponse struct {
+	ID        int       `json:"id"`
+	Quantity  int       `json:"quantity"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func ToProductStockLogResponse(l domain.ProductStockLog) *ProductStockLogResponse {
+	return &ProductStockLogResponse{
+		ID:        l.ID,
+		Quantity:  l.Quantity,
+		CreatedAt: l.CreatedAt,
+	}
+}
+
+func ToProductStockLogListResponse(logs []domain.ProductStockLog) []*ProductStockLogResponse {
+	resps := make([]*ProductStockLogResponse, len(logs))
+	for i, l := range logs {
+		resps[i] = ToProductStockLogResponse(l)
+	}
+	return resps
 }

@@ -50,7 +50,7 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 	reportUcase := usecase.NewReportUsecase(reportRepo)
 	salaryVarUcase := usecase.NewSalaryVariableUsecase(salaryVarRepo)
 	customerUcase := usecase.NewCustomerUsecase(customerRepo)
-	transactionUcase := usecase.NewTransactionUsecase(transactionRepo)
+	transactionUcase := usecase.NewTransactionUsecase(transactionRepo, productRepo)
 	payrollUcase := usecase.NewPayrollUsecase(employeeRepo, overtimeRepo, cashAdvanceRepo, salaryVarRepo)
 	productUcase := usecase.NewProductUsecase(productRepo)
 	adminTypeUcase := usecase.NewAdminTypeUsecase(adminTypeRepo)
@@ -208,6 +208,7 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 	products := r.Group("/products").Use(authMiddleware)
 	{
 		products.GET("/inventory", productHandler.GetInventory)
+		products.GET("/inventory/logs/:id", productHandler.GetStockLogs)
 		products.GET("/sizes", productHandler.GetSizes)
 		products.PUT("/inventory/:id/stock", productHandler.UpdateStock)
 

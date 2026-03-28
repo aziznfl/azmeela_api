@@ -16,39 +16,42 @@ func (TransactionStatus) TableName() string {
 }
 
 type Transaction struct {
-	ID              int                `gorm:"primaryKey;autoIncrement"`
-	CustomerID      int
-	Customer        *Customer          `gorm:"foreignKey:CustomerID"`
-	AdminID         int
-	Admin           *Employee          `gorm:"foreignKey:AdminID"`
-	TransferDate    *time.Time         `gorm:"type:date;default:null"`
-	ShippingDate    *time.Time         `gorm:"type:date;default:null"`
-	StatusID        int                `gorm:"default:1"`
-	Status          *TransactionStatus `gorm:"foreignKey:StatusID"`
-	ShippingCost    int
-	TrackingNumber  *string            `gorm:"type:varchar(50);default:null"`
-	Courier         *string            `gorm:"type:varchar(30);default:null"`
-	TransactionCode string             `gorm:"type:varchar(15);unique"`
-	Total           int
-	Address         string             `gorm:"type:text"`
-	PaymentCode     int
-	Discount        int                `gorm:"default:0"`
-	DiscountNote    *string            `gorm:"type:varchar(200);default:null"`
-	DiscountType    int                `gorm:"default:1"`
-	IsReminded      bool               `gorm:"default:false"`
-	CreatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP"`
-	Details         []TransactionDetail `gorm:"foreignKey:TransactionID"`
-	Logs            []TransactionLog    `gorm:"foreignKey:TransactionID"`
+	ID              int                `gorm:"primaryKey;autoIncrement" json:"id"`
+	CustomerID      int                `json:"customer_id"`
+	Customer        *Customer          `gorm:"foreignKey:CustomerID" json:"customer,omitempty"`
+	AdminID         int                `json:"admin_id"`
+	Admin           *Employee          `gorm:"foreignKey:AdminID" json:"admin,omitempty"`
+	TransferDate    *time.Time         `gorm:"type:date;default:null" json:"transfer_date"`
+	ShippingDate    *time.Time         `gorm:"type:date;default:null" json:"shipping_date"`
+	StatusID        int                `gorm:"default:1" json:"status_id"`
+	Status          *TransactionStatus `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	ShippingCost    int                `json:"shipping_cost"`
+	TrackingNumber  *string            `gorm:"type:varchar(50);default:null" json:"tracking_number"`
+	Courier         *string            `gorm:"type:varchar(30);default:null" json:"courier"`
+	TransactionCode string             `gorm:"type:varchar(15);unique" json:"transaction_code"`
+	Total           int                `json:"total"`
+	Address         string             `gorm:"type:text" json:"address"`
+	PaymentCode     int                `json:"payment_code"`
+	Discount        int                `gorm:"default:0" json:"discount"`
+	DiscountNote    *string            `gorm:"type:varchar(200);default:null" json:"discount_note"`
+	DiscountType    int                `gorm:"default:1" json:"discount_type"`
+	IsReminded      bool               `gorm:"default:false" json:"is_reminded"`
+	CreatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	Details         []TransactionDetail `gorm:"foreignKey:TransactionID" json:"details"`
+	Logs            []TransactionLog    `gorm:"foreignKey:TransactionID" json:"logs,omitempty"`
 }
 
 type TransactionDetail struct {
-	ID             int           `gorm:"primaryKey;autoIncrement"`
-	TransactionID  int
-	ProductPriceID int
-	ProductPrice   *ProductPrice `gorm:"foreignKey:ProductPriceID"`
-	Quantity       int
-	Price          int
+	ID             int           `gorm:"primaryKey;autoIncrement" json:"id"`
+	TransactionID  int           `json:"transaction_id"`
+	ProductPriceID int           `json:"product_price_id"`
+	ProductPrice   *ProductPrice `gorm:"foreignKey:ProductPriceID" json:"product_price,omitempty"`
+	Quantity       int           `json:"quantity"`
+	Price          int           `json:"price"`
+	// Virtual fields for frontend convenience
+	ProductCodeID int `gorm:"-" json:"product_code_id"`
+	ProductID     int `gorm:"-" json:"product_id"`
 }
 
 func (TransactionDetail) TableName() string {

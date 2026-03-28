@@ -62,6 +62,15 @@ func (r *transactionRepository) GetByID(ctx context.Context, id int) (*domain.Tr
 	if err != nil {
 		return nil, err
 	}
+
+	// Populate virtual fields
+	for i := range transaction.Details {
+		if transaction.Details[i].ProductPrice != nil && transaction.Details[i].ProductPrice.Product != nil {
+			transaction.Details[i].ProductID = transaction.Details[i].ProductPrice.ProductID
+			transaction.Details[i].ProductCodeID = transaction.Details[i].ProductPrice.Product.ProductCodeID
+		}
+	}
+
 	return &transaction, nil
 }
 
@@ -70,7 +79,23 @@ func (r *transactionRepository) Store(ctx context.Context, tx *domain.Transactio
 }
 
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
-	return r.db.WithContext(ctx).Save(tx).Error
+	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
+		// 1. Manual wipe of existing details
+		if err := db.Where("transaction_id = ?", tx.ID).Delete(&domain.TransactionDetail{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Manual insert of new details
+		if len(tx.Details) > 0 {
+			if err := db.Create(&tx.Details).Error; err != nil {
+				return err
+			}
+		}
+
+		// 3. Save the transaction main record, omitting "Details" to prevent GORM 
+		// from trying to "link/unlink" associations which triggers the NOT NULL error.
+		return db.Omit("Details").Save(tx).Error
+	})
 }
 
 func (r *transactionRepository) Delete(ctx context.Context, id int) error {

@@ -10,12 +10,14 @@ import (
 )
 
 type transactionUsecase struct {
-	txRepo domain.TransactionRepository
+	txRepo      domain.TransactionRepository
+	productRepo domain.ProductRepository
 }
 
-func NewTransactionUsecase(r domain.TransactionRepository) domain.TransactionUsecase {
+func NewTransactionUsecase(r domain.TransactionRepository, pr domain.ProductRepository) domain.TransactionUsecase {
 	return &transactionUsecase{
-		txRepo: r,
+		txRepo:      r,
+		productRepo: pr,
 	}
 }
 
@@ -94,6 +96,11 @@ func (u *transactionUsecase) Create(ctx context.Context, req *domain.Transaction
 		return nil, err
 	}
 
+	// Deduct stock for each item in transaction
+	for _, d := range tx.Details {
+		_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity)
+	}
+
 	return u.txRepo.GetByID(ctx, tx.ID)
 }
 
@@ -135,6 +142,11 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 			tx.StatusID = req.StatusID
 		}
 	} else {
+		// Revert old stock before updating to new details
+		for _, d := range tx.Details {
+			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, d.Quantity)
+		}
+
 		// Full update allowed if still "Belum Dibayar"
 		tx.TransferDate = req.TransferDate
 		tx.ShippingDate = req.ShippingDate
@@ -151,6 +163,18 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 		tx.DiscountNote = req.DiscountNote
 		tx.DiscountType = req.DiscountType
 		tx.IsReminded = req.IsReminded
+
+		// Update Details
+		newDetails := make([]domain.TransactionDetail, len(req.Details))
+		for i, d := range req.Details {
+			newDetails[i] = domain.TransactionDetail{
+				TransactionID:  tx.ID,
+				ProductPriceID: d.ProductPriceID,
+				Quantity:       d.Quantity,
+				Price:          d.Price,
+			}
+		}
+		tx.Details = newDetails
 	}
 
 	// Senior Trick: Clear associations pointers before Save to prevent GORM 
@@ -162,6 +186,13 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 	err = u.txRepo.Update(ctx, tx)
 	if err != nil {
 		return nil, err
+	}
+
+	// If details were updated (Status was 1), deduct new stock
+	if tx.StatusID == 1 {
+		for _, d := range tx.Details {
+			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity)
+		}
 	}
 
 	return u.txRepo.GetByID(ctx, tx.ID)

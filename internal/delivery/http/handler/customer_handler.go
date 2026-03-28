@@ -30,6 +30,12 @@ func (h *CustomerHandler) Fetch(c *gin.Context) {
 	if search := c.Query("search"); search != "" {
 		filter["search"] = search
 	}
+	if sortBy := c.Query("sort_by"); sortBy != "" {
+		filter["sort_by"] = sortBy
+	}
+	if order := c.Query("order"); order != "" {
+		filter["order"] = order
+	}
 
 	// Pagination params
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

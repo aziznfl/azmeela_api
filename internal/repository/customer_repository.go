@@ -21,6 +21,20 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 
 	query := r.db.WithContext(ctx).Model(&domain.Customer{}).Where("is_active = ?", true)
 
+	order := "DESC"
+	if ord, ok := filter["order"]; ok {
+		order = ord.(string)
+		delete(filter, "order")
+	}
+
+	sortOrder := "customers.created_at " + order
+	if sortBy, ok := filter["sort_by"]; ok {
+		if sortBy == "id" {
+			sortOrder = "customers.id " + order
+		}
+		delete(filter, "sort_by")
+	}
+
 	for k, v := range filter {
 		if k == "search" {
 			searchVal := "%" + v.(string) + "%"
@@ -37,7 +51,7 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 	}
 
 	// Apply Pagination & Joins (Senior Optimization: one query for 1:1 relations)
-	err = query.Joins("CustomerType").Offset(offset).Limit(limit).Order("customers.id DESC").Find(&customers).Error
+	err = query.Joins("CustomerType").Offset(offset).Limit(limit).Order(sortOrder).Find(&customers).Error
 
 	return customers, total, err
 }

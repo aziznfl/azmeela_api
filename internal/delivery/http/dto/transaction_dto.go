@@ -53,6 +53,8 @@ type TransactionDiscountSummary struct {
 type TransactionDetailResponse struct {
 	ID              int    `json:"id"`
 	ProductPriceID  int    `json:"product_price_id"`
+	ProductCodeID   int    `json:"product_code_id"`
+	ProductID       int    `json:"product_id"`
 	ProductCodeName string `json:"product_code_name"`
 	ProductTypeName string `json:"product_type_name"`
 	SKU             string `json:"sku,omitempty"`
@@ -162,6 +164,8 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 			detail := TransactionDetailResponse{
 				ID:             d.ID,
 				ProductPriceID: d.ProductPriceID,
+				ProductCodeID:  d.ProductCodeID,
+				ProductID:      d.ProductID,
 				Quantity:       d.Quantity,
 				Price:          d.Price,
 				TotalPrice:     d.Quantity * d.Price,

@@ -21,9 +21,9 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 	ctx := c.Request.Context()
 	
 	filter := make(map[string]interface{})
-	if productID := c.Query("product_id"); productID != "" {
-		id, _ := strconv.Atoi(productID)
-		filter["product_id"] = id
+	if productCodeID := c.Query("product_code_id"); productCodeID != "" {
+		id, _ := strconv.Atoi(productCodeID)
+		filter["product_code_id"] = id
 	}
 	if typeID := c.Query("product_type_id"); typeID != "" {
 		id, _ := strconv.Atoi(typeID)
@@ -37,6 +37,11 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 	prices, err := h.Usecase.GetInventoryList(ctx, filter)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
+		return
+	}
+
+	if _, ok := filter["product_code_id"]; ok && len(prices) > 0 {
+		SuccessResponse(c, http.StatusOK, "Data inventori berhasil diambil", dto.ToProductCodeResponse(&prices[0]))
 		return
 	}
 
@@ -86,14 +91,14 @@ func (h *ProductHandler) UpdateStock(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	
 	var req struct {
-		Stock int `json:"stock"`
+		Quantity int `json:"quantity"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.Usecase.UpdateStock(ctx, id, req.Stock); err != nil {
+	if err := h.Usecase.UpdateStock(ctx, id, req.Quantity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
@@ -223,4 +228,17 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 	SuccessResponse(c, http.StatusOK, "Produk berhasil dihapus", nil)
+}
+
+func (h *ProductHandler) GetStockLogs(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.Atoi(c.Param("id"))
+	
+	logs, err := h.Usecase.GetStockLogs(ctx, id)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "")
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Log stok berhasil diambil", dto.ToProductStockLogListResponse(logs))
 }

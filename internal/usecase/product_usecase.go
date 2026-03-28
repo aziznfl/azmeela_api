@@ -52,8 +52,8 @@ func (u *productUsecase) GetProductSizes(ctx context.Context) ([]domain.ProductS
 	return u.productRepo.FetchSizes(ctx)
 }
 
-func (u *productUsecase) UpdateStock(ctx context.Context, id int, stock int) error {
-	return u.productRepo.UpdateStock(ctx, id, stock)
+func (u *productUsecase) UpdateStock(ctx context.Context, id int, quantity int) error {
+	return u.productRepo.UpdateStock(ctx, id, quantity)
 }
 
 func (u *productUsecase) CreateProduct(ctx context.Context, req *domain.Product) error {
@@ -66,4 +66,8 @@ func (u *productUsecase) UpdateProduct(ctx context.Context, req *domain.Product)
 
 func (u *productUsecase) DeleteProduct(ctx context.Context, id int) error {
 	return u.productRepo.DeleteProduct(ctx, id)
+}
+
+func (u *productUsecase) GetStockLogs(ctx context.Context, productPriceID int) ([]domain.ProductStockLog, error) {
+	return u.productRepo.GetStockLogs(ctx, productPriceID)
 }
