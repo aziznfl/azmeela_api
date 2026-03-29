@@ -47,7 +47,7 @@ func (r *productRepository) FetchSizes(ctx context.Context) ([]domain.ProductSiz
 
 func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCode, error) {
 	var codes []domain.ProductCode
-	
+
 	query := r.db.WithContext(ctx).Model(&domain.ProductCode{})
 	query = query.Preload("Type").
 		Preload("Products", func(db *gorm.DB) *gorm.DB {
@@ -60,18 +60,18 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	} else {
 		query = query.Preload("Products.Variants")
 	}
-	
+
 	query = query.Preload("Products.Variants.Size")
 	query = query.Preload("Products.Variants.CustomerType")
 
 	if name, ok := filter["name"].(string); ok && name != "" {
 		query = query.Where("product_codes.name ILIKE ?", "%"+name+"%")
 	}
-	
+
 	if typeID, ok := filter["product_type_id"].(int); ok && typeID != 0 {
 		query = query.Where("product_codes.product_type_id = ?", typeID)
 	}
-	
+
 	if codeID, ok := filter["product_code_id"].(int); ok && codeID != 0 {
 		query = query.Where("product_codes.id = ?", codeID)
 	}
@@ -124,8 +124,14 @@ func (r *productRepository) FetchPrices(ctx context.Context, filter map[string]i
 	return prices, err
 }
 
-func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity int) error {
+func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity int, adminID int) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Get current product_id from the product_price
+		var pp domain.ProductPrice
+		if err := tx.Select("product_id").First(&pp, id).Error; err != nil {
+			return err
+		}
+
 		// 1. Update stock in product_prices
 		if err := tx.Model(&domain.ProductPrice{}).Where("id = ?", id).Update("stock", gorm.Expr("stock + ?", quantity)).Error; err != nil {
 			return err
@@ -134,7 +140,9 @@ func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity in
 		// 2. Insert into product_stock_inputs (ProductStockLog)
 		log := domain.ProductStockLog{
 			ProductPriceID: id,
+			ProductID:      pp.ProductID,
 			Quantity:       quantity,
+			AdminID:        adminID,
 		}
 		if err := tx.Create(&log).Error; err != nil {
 			return err
@@ -146,7 +154,12 @@ func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity in
 
 func (r *productRepository) GetStockLogs(ctx context.Context, productPriceID int) ([]domain.ProductStockLog, error) {
 	var logs []domain.ProductStockLog
-	err := r.db.WithContext(ctx).Where("product_price_id = ?", productPriceID).Order("input_date DESC").Find(&logs).Error
+	err := r.db.WithContext(ctx).
+		Joins("Admin").
+		Joins("ProductPrice").
+		Joins("ProductPrice.Size").
+		Where("product_price_id = ?", productPriceID).
+		Order("input_date DESC").Find(&logs).Error
 	return logs, err
 }
 

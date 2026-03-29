@@ -6,6 +6,7 @@ import (
 
 	"github.com/azmeela/sispeg-api/internal/delivery/http/dto"
 	"github.com/azmeela/sispeg-api/internal/domain"
+	"github.com/azmeela/sispeg-api/pkg/token"
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,11 +38,6 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 	prices, err := h.Usecase.GetInventoryList(ctx, filter)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
-		return
-	}
-
-	if _, ok := filter["product_code_id"]; ok && len(prices) > 0 {
-		SuccessResponse(c, http.StatusOK, "Data inventori berhasil diambil", dto.ToProductCodeResponse(&prices[0]))
 		return
 	}
 
@@ -90,6 +86,8 @@ func (h *ProductHandler) UpdateStock(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
 	
+	payload := c.MustGet("authorization_payload").(*token.Payload)
+
 	var req struct {
 		Quantity int `json:"quantity"`
 	}
@@ -98,8 +96,8 @@ func (h *ProductHandler) UpdateStock(c *gin.Context) {
 		return
 	}
 
-	if err := h.Usecase.UpdateStock(ctx, id, req.Quantity); err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "")
+	if err := h.Usecase.UpdateStock(ctx, id, req.Quantity, payload.UserID); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -142,7 +140,7 @@ func (h *ProductHandler) DeleteType(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 
 	if err := h.Usecase.DeleteProductType(ctx, id); err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "")
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	SuccessResponse(c, http.StatusOK, "Tipe produk berhasil dihapus", nil)

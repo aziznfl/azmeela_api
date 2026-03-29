@@ -273,13 +273,27 @@ type ProductStockLogResponse struct {
 	ID        int       `json:"id"`
 	Quantity  int       `json:"quantity"`
 	CreatedAt time.Time `json:"created_at"`
+	AdminName string    `json:"admin_name"`
+	SizeName  string    `json:"size_name"`
 }
 
 func ToProductStockLogResponse(l domain.ProductStockLog) *ProductStockLogResponse {
+	adminName := "Sistem"
+	if l.Admin != nil {
+		adminName = l.Admin.Name
+	}
+	
+	sizeName := ""
+	if l.ProductPrice != nil && l.ProductPrice.Size != nil {
+		sizeName = l.ProductPrice.Size.Name
+	}
+	
 	return &ProductStockLogResponse{
 		ID:        l.ID,
 		Quantity:  l.Quantity,
 		CreatedAt: l.CreatedAt,
+		AdminName: adminName,
+		SizeName:  sizeName,
 	}
 }
 

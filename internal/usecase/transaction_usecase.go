@@ -98,7 +98,7 @@ func (u *transactionUsecase) Create(ctx context.Context, req *domain.Transaction
 
 	// Deduct stock for each item in transaction
 	for _, d := range tx.Details {
-		_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity)
+		_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity, req.AdminID)
 	}
 
 	return u.txRepo.GetByID(ctx, tx.ID)
@@ -144,7 +144,7 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 	} else {
 		// Revert old stock before updating to new details
 		for _, d := range tx.Details {
-			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, d.Quantity)
+			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, d.Quantity, req.AdminID)
 		}
 
 		// Full update allowed if still "Belum Dibayar"
@@ -191,7 +191,7 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 	// If details were updated (Status was 1), deduct new stock
 	if tx.StatusID == 1 {
 		for _, d := range tx.Details {
-			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity)
+			_ = u.productRepo.UpdateStock(ctx, d.ProductPriceID, -d.Quantity, req.AdminID)
 		}
 	}
 

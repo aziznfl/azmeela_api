@@ -86,12 +86,15 @@ type ProductPrice struct {
 }
 
 type ProductStockLog struct {
-	ID             int       `gorm:"primaryKey;column:id;autoIncrement"`
-	ProductPriceID int       `gorm:"column:product_price_id"`
-	Quantity       int       `gorm:"column:quantity"`
-	AdminID        int       `gorm:"column:admin_id"`
+	ID             int           `gorm:"primaryKey;column:id;autoIncrement"`
+	ProductPriceID int           `gorm:"column:product_price_id"`
+	ProductID      int           `gorm:"column:product_id"`
+	Quantity       int           `gorm:"column:quantity"`
+	AdminID        int           `gorm:"column:admin_id"`
 	InputType      int       `gorm:"column:input_type;default:1"`
 	CreatedAt      time.Time `gorm:"column:input_date;autoCreateTime"`
+	Admin          *Employee     `gorm:"foreignKey:AdminID"`
+	ProductPrice   *ProductPrice `gorm:"foreignKey:ProductPriceID"`
 }
 
 func (ProductStockLog) TableName() string {
@@ -118,7 +121,7 @@ type ProductRepository interface {
 	DeleteCode(ctx context.Context, id int) error
 
 	FetchPrices(ctx context.Context, filter map[string]interface{}) ([]ProductPrice, error)
-	UpdateStock(ctx context.Context, id int, quantity int) error
+	UpdateStock(ctx context.Context, id int, quantity int, adminID int) error
 	GetStockLogs(ctx context.Context, productPriceID int) ([]ProductStockLog, error)
 
 	CreateProduct(ctx context.Context, product *Product) error
@@ -143,6 +146,6 @@ type ProductUsecase interface {
 	DeleteProduct(ctx context.Context, id int) error
 
 	GetProductSizes(ctx context.Context) ([]ProductSize, error)
-	UpdateStock(ctx context.Context, id int, quantity int) error
+	UpdateStock(ctx context.Context, id int, quantity int, adminID int) error
 	GetStockLogs(ctx context.Context, productPriceID int) ([]ProductStockLog, error)
 }
