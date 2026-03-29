@@ -2,8 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
-
 	"github.com/azmeela/sispeg-api/internal/delivery/http/dto"
 	"github.com/azmeela/sispeg-api/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -38,8 +36,7 @@ func (h *CustomerHandler) Fetch(c *gin.Context) {
 	}
 
 	// Pagination params
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, limit := GetPaginationParams(c)
 
 	customers, meta, err := h.Usecase.Fetch(ctx, filter, page, limit)
 	if err != nil {
@@ -51,10 +48,8 @@ func (h *CustomerHandler) Fetch(c *gin.Context) {
 }
 
 func (h *CustomerHandler) GetByID(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	id, ok := ParseID(c, "id")
+	if !ok {
 		return
 	}
 
@@ -70,8 +65,7 @@ func (h *CustomerHandler) GetByID(c *gin.Context) {
 
 func (h *CustomerHandler) Store(c *gin.Context) {
 	var req domain.CustomerRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -86,16 +80,13 @@ func (h *CustomerHandler) Store(c *gin.Context) {
 }
 
 func (h *CustomerHandler) Update(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	id, ok := ParseID(c, "id")
+	if !ok {
 		return
 	}
 
 	var req domain.CustomerRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -110,15 +101,13 @@ func (h *CustomerHandler) Update(c *gin.Context) {
 }
 
 func (h *CustomerHandler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	id, ok := ParseID(c, "id")
+	if !ok {
 		return
 	}
 
 	ctx := c.Request.Context()
-	err = h.Usecase.Delete(ctx, id)
+	err := h.Usecase.Delete(ctx, id)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
@@ -141,8 +130,7 @@ func (h *CustomerHandler) GetTypes(c *gin.Context) {
 func (h *CustomerHandler) CreateType(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req domain.CustomerType
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !BindJSON(c, &req) {
 		return
 	}
 	if err := h.Usecase.CreateType(ctx, &req); err != nil {
@@ -154,10 +142,12 @@ func (h *CustomerHandler) CreateType(c *gin.Context) {
 
 func (h *CustomerHandler) UpdateType(c *gin.Context) {
 	ctx := c.Request.Context()
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, ok := ParseID(c, "id")
+	if !ok {
+		return
+	}
 	var req domain.CustomerType
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !BindJSON(c, &req) {
 		return
 	}
 	if err := h.Usecase.UpdateType(ctx, id, &req); err != nil {
@@ -169,7 +159,10 @@ func (h *CustomerHandler) UpdateType(c *gin.Context) {
 
 func (h *CustomerHandler) DeleteType(c *gin.Context) {
 	ctx := c.Request.Context()
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, ok := ParseID(c, "id")
+	if !ok {
+		return
+	}
 	if err := h.Usecase.DeleteType(ctx, id); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
@@ -178,7 +171,10 @@ func (h *CustomerHandler) DeleteType(c *gin.Context) {
 }
 
 func (h *CustomerHandler) GetAddresses(c *gin.Context) {
-	customerID, _ := strconv.Atoi(c.Param("id"))
+	customerID, ok := ParseID(c, "id")
+	if !ok {
+		return
+	}
 	ctx := c.Request.Context()
 	addresses, err := h.Usecase.GetAddresses(ctx, customerID)
 	if err != nil {
@@ -190,8 +186,7 @@ func (h *CustomerHandler) GetAddresses(c *gin.Context) {
 
 func (h *CustomerHandler) CreateAddress(c *gin.Context) {
 	var req domain.CustomerAddressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -206,10 +201,12 @@ func (h *CustomerHandler) CreateAddress(c *gin.Context) {
 }
 
 func (h *CustomerHandler) UpdateAddress(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("address_id"))
+	id, ok := ParseID(c, "address_id")
+	if !ok {
+		return
+	}
 	var req domain.CustomerAddressRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -224,7 +221,10 @@ func (h *CustomerHandler) UpdateAddress(c *gin.Context) {
 }
 
 func (h *CustomerHandler) DeleteAddress(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("address_id"))
+	id, ok := ParseID(c, "address_id")
+	if !ok {
+		return
+	}
 	ctx := c.Request.Context()
 	err := h.Usecase.DeleteAddress(ctx, id)
 	if err != nil {

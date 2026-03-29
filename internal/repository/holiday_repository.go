@@ -8,45 +8,24 @@ import (
 )
 
 type holidayRepository struct {
-	db *gorm.DB
+	BaseRepository[domain.Holiday]
 }
 
 func NewHolidayRepository(db *gorm.DB) domain.HolidayRepository {
-	return &holidayRepository{db}
+	return &holidayRepository{
+		BaseRepository: BaseRepository[domain.Holiday]{db: db},
+	}
 }
 
 func (r *holidayRepository) Fetch(ctx context.Context, filter map[string]interface{}) ([]domain.Holiday, error) {
-	var holidays []domain.Holiday
-	query := r.db.WithContext(ctx)
-
-	for k, v := range filter {
-		query = query.Where(k+" = ?", v)
-	}
-
-	err := query.Find(&holidays).Error
-	if err != nil {
-		return nil, err
-	}
-	return holidays, nil
+	// For holiday, we dont use pagination yet so offset=0 and limit=1000
+	res, _, err := r.BaseRepository.Fetch(ctx, filter, 0, 1000)
+	return res, err
 }
-
-func (r *holidayRepository) GetByID(ctx context.Context, id int) (*domain.Holiday, error) {
-	var holiday domain.Holiday
-	err := r.db.WithContext(ctx).First(&holiday, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &holiday, nil
-}
-
-func (r *holidayRepository) Store(ctx context.Context, holiday *domain.Holiday) error {
-	return r.db.WithContext(ctx).Create(holiday).Error
-}
-
-func (r *holidayRepository) Update(ctx context.Context, holiday *domain.Holiday) error {
-	return r.db.WithContext(ctx).Save(holiday).Error
-}
-
-func (r *holidayRepository) Delete(ctx context.Context, id int) error {
-	return r.db.WithContext(ctx).Delete(&domain.Holiday{}, id).Error
-}
+// Delete, Update, Store and GetByID are already handled by BaseRepository if they match the signature.
+// Wait. domain.HolidayRepository methods:
+// Store(ctx context.Context, holiday *Holiday) error
+// Update(ctx context.Context, holiday *Holiday) error
+// GetByID(ctx context.Context, id int) (*Holiday, error)
+// Delete(ctx context.Context, id int) error
+// These match the BaseRepository signatures.

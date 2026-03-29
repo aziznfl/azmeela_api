@@ -2,8 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
-
 	"github.com/azmeela/sispeg-api/internal/delivery/http/dto"
 	"github.com/azmeela/sispeg-api/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -51,8 +49,7 @@ func (h *HolidayHandler) Fetch(c *gin.Context) {
 // @Router       /holidays [post]
 func (h *HolidayHandler) Store(c *gin.Context) {
 	var req dto.HolidayRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -82,16 +79,13 @@ func (h *HolidayHandler) Store(c *gin.Context) {
 // @Success      200      {object}  domain.Holiday
 // @Router       /holidays/{id} [put]
 func (h *HolidayHandler) Update(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	id, ok := ParseID(c, "id")
+	if !ok {
 		return
 	}
 
 	var req dto.HolidayRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	if !BindJSON(c, &req) {
 		return
 	}
 
@@ -120,15 +114,13 @@ func (h *HolidayHandler) Update(c *gin.Context) {
 // @Success      200  {object}  map[string]interface{}
 // @Router       /holidays/{id} [delete]
 func (h *HolidayHandler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	id, ok := ParseID(c, "id")
+	if !ok {
 		return
 	}
 
 	ctx := c.Request.Context()
-	err = h.Usecase.Delete(ctx, id)
+	err := h.Usecase.Delete(ctx, id)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
