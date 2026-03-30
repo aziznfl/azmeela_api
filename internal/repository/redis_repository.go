@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -36,4 +37,28 @@ func (r *redisRepository) GetRefreshToken(ctx context.Context, token string) (in
 
 func (r *redisRepository) DeleteRefreshToken(ctx context.Context, token string) error {
 	return r.client.Del(ctx, token).Err()
+}
+
+func (r *redisRepository) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return r.client.Set(ctx, key, data, ttl).Err()
+}
+
+func (r *redisRepository) Get(ctx context.Context, key string, target interface{}) error {
+	val, err := r.client.Get(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(val), target)
+}
+
+func (r *redisRepository) Delete(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
+}
+
+func (r *redisRepository) FlushAll(ctx context.Context) error {
+	return r.client.FlushDB(ctx).Err()
 }

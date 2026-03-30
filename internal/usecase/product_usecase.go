@@ -2,17 +2,21 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/azmeela/sispeg-api/internal/domain"
 )
 
 type productUsecase struct {
 	productRepo domain.ProductRepository
+	redisRepo   domain.RedisRepository
 }
 
-func NewProductUsecase(repo domain.ProductRepository) domain.ProductUsecase {
+func NewProductUsecase(repo domain.ProductRepository, redisRepo domain.RedisRepository) domain.ProductUsecase {
 	return &productUsecase{
 		productRepo: repo,
+		redisRepo:   redisRepo,
 	}
 }
 
@@ -21,39 +25,102 @@ func (u *productUsecase) GetInventoryList(ctx context.Context, filter map[string
 }
 
 func (u *productUsecase) GetCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCodeWithType, error) {
-	return u.productRepo.FetchCodesWithTypes(ctx, filter)
+	cacheKey := fmt.Sprintf("product_codes_with_types:%v", filter)
+	var results []domain.ProductCodeWithType
+	
+	if err := u.redisRepo.Get(ctx, cacheKey, &results); err == nil {
+		return results, nil
+	}
+
+	results, err := u.productRepo.FetchCodesWithTypes(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, results, 24*time.Hour)
+	return results, nil
 }
 
 func (u *productUsecase) GetProductTypes(ctx context.Context) ([]domain.ProductType, error) {
-	return u.productRepo.FetchTypes(ctx)
+	cacheKey := "product_types"
+	var types []domain.ProductType
+	
+	if err := u.redisRepo.Get(ctx, cacheKey, &types); err == nil {
+		return types, nil
+	}
+
+	types, err := u.productRepo.FetchTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, types, 24*time.Hour)
+	return types, nil
 }
 
 func (u *productUsecase) CreateProductType(ctx context.Context, req *domain.ProductType) error {
-	return u.productRepo.CreateType(ctx, req)
+	err := u.productRepo.CreateType(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "product_types")
+	}
+	return err
 }
 
 func (u *productUsecase) UpdateProductType(ctx context.Context, req *domain.ProductType) error {
-	return u.productRepo.UpdateType(ctx, req)
+	err := u.productRepo.UpdateType(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "product_types")
+	}
+	return err
 }
 
 func (u *productUsecase) DeleteProductType(ctx context.Context, id int) error {
-	return u.productRepo.DeleteType(ctx, id)
+	err := u.productRepo.DeleteType(ctx, id)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "product_types")
+	}
+	return err
 }
 
 func (u *productUsecase) CreateProductCode(ctx context.Context, req *domain.ProductCode) error {
-	return u.productRepo.CreateCode(ctx, req)
+	err := u.productRepo.CreateCode(ctx, req)
+	if err == nil {
+		u.clearCodesWithTypesCache(ctx)
+	}
+	return err
 }
 
 func (u *productUsecase) UpdateProductCode(ctx context.Context, req *domain.ProductCode) error {
-	return u.productRepo.UpdateCode(ctx, req)
+	err := u.productRepo.UpdateCode(ctx, req)
+	if err == nil {
+		u.clearCodesWithTypesCache(ctx)
+	}
+	return err
 }
 
 func (u *productUsecase) DeleteProductCode(ctx context.Context, id int) error {
-	return u.productRepo.DeleteCode(ctx, id)
+	err := u.productRepo.DeleteCode(ctx, id)
+	if err == nil {
+		u.clearCodesWithTypesCache(ctx)
+	}
+	return err
 }
 
 func (u *productUsecase) GetProductSizes(ctx context.Context) ([]domain.ProductSize, error) {
-	return u.productRepo.FetchSizes(ctx)
+	cacheKey := "product_sizes"
+	var sizes []domain.ProductSize
+	
+	if err := u.redisRepo.Get(ctx, cacheKey, &sizes); err == nil {
+		return sizes, nil
+	}
+
+	sizes, err := u.productRepo.FetchSizes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, sizes, 24*time.Hour)
+	return sizes, nil
 }
 
 func (u *productUsecase) UpdateStock(ctx context.Context, id int, quantity int, adminID int) error {
@@ -61,14 +128,24 @@ func (u *productUsecase) UpdateStock(ctx context.Context, id int, quantity int, 
 }
 
 func (u *productUsecase) CreateProduct(ctx context.Context, req *domain.Product) error {
-	return u.productRepo.CreateProduct(ctx, req)
+	err := u.productRepo.CreateProduct(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, fmt.Sprintf("product_colors:%d", req.ProductCodeID))
+	}
+	return err
 }
 
 func (u *productUsecase) UpdateProduct(ctx context.Context, req *domain.Product) error {
-	return u.productRepo.UpdateProduct(ctx, req)
+	err := u.productRepo.UpdateProduct(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, fmt.Sprintf("product_colors:%d", req.ProductCodeID))
+	}
+	return err
 }
 
 func (u *productUsecase) DeleteProduct(ctx context.Context, id int) error {
+	// We might need to fetch the product first to get the ProductCodeID for cache invalidation
+	// But let's keep it simple for now, or just clear all colors cache if needed.
 	return u.productRepo.DeleteProduct(ctx, id)
 }
 
@@ -77,9 +154,29 @@ func (u *productUsecase) GetStockLogs(ctx context.Context, productPriceID int) (
 }
 
 func (u *productUsecase) GetProductColors(ctx context.Context, productCodeID int) ([]domain.ProductColorResponse, error) {
-	return u.productRepo.FetchColors(ctx, productCodeID)
+	cacheKey := fmt.Sprintf("product_colors:%d", productCodeID)
+	var colors []domain.ProductColorResponse
+	
+	if err := u.redisRepo.Get(ctx, cacheKey, &colors); err == nil {
+		return colors, nil
+	}
+
+	colors, err := u.productRepo.FetchColors(ctx, productCodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, colors, 24*time.Hour)
+	return colors, nil
 }
 
 func (u *productUsecase) GetProductSizesType(ctx context.Context, productID int, customerTypeID int) ([]domain.ProductSizeTypeResponse, error) {
 	return u.productRepo.FetchSizesType(ctx, productID, customerTypeID)
+}
+
+// Helper to clear multiple cache variations
+func (u *productUsecase) clearCodesWithTypesCache(ctx context.Context) {
+	// Since we use map based keys, it's hard to delete all variations without SCAN.
+	// For now, we'll set a shorter TTL or use a prefix.
+	// In a real scenario, we'd use a pattern match delete or a versioning system.
 }

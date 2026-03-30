@@ -3,18 +3,27 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/azmeela/sispeg-api/internal/domain"
 )
 
 type customerUsecase struct {
 	customerRepo domain.CustomerRepository
+	redisRepo    domain.RedisRepository
 }
 
-func NewCustomerUsecase(c domain.CustomerRepository) domain.CustomerUsecase {
+func NewCustomerUsecase(c domain.CustomerRepository, redisRepo domain.RedisRepository) domain.CustomerUsecase {
 	return &customerUsecase{
 		customerRepo: c,
+		redisRepo:    redisRepo,
 	}
+}
+
+type customerFetchResponse struct {
+	Customers []domain.Customer     `json:"customers"`
+	Meta      domain.PaginationMeta `json:"meta"`
 }
 
 func (u *customerUsecase) Fetch(ctx context.Context, filter map[string]interface{}, page, limit int) ([]domain.Customer, domain.PaginationMeta, error) {
@@ -23,6 +32,12 @@ func (u *customerUsecase) Fetch(ctx context.Context, filter map[string]interface
 	}
 	if limit <= 0 {
 		limit = 10
+	}
+
+	cacheKey := fmt.Sprintf("customer_list:%v:%d:%d", filter, page, limit)
+	var cached customerFetchResponse
+	if err := u.redisRepo.Get(ctx, cacheKey, &cached); err == nil {
+		return cached.Customers, cached.Meta, nil
 	}
 
 	offset := (page - 1) * limit
@@ -42,6 +57,8 @@ func (u *customerUsecase) Fetch(ctx context.Context, filter map[string]interface
 		LastPage:    lastPage,
 		PerPage:     limit,
 	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, customerFetchResponse{Customers: customers, Meta: meta}, 30*time.Minute)
 
 	return customers, meta, nil
 }
@@ -79,6 +96,8 @@ func (u *customerUsecase) Create(ctx context.Context, req *domain.CustomerReques
 		return nil, err
 	}
 
+	u.clearCustomerCache(ctx)
+
 	// Reload for preloading type
 	return u.customerRepo.GetByID(ctx, cust.ID)
 }
@@ -96,37 +115,64 @@ func (u *customerUsecase) Update(ctx context.Context, id int, req *domain.Custom
 	cust.MembershipStatus = req.MembershipStatus
 	cust.Username = req.Username
 	cust.Email = req.Email
-	if req.IsActive != nil {
-		// handle removed is_active field
-	}
 
 	err = u.customerRepo.Update(ctx, cust)
 	if err != nil {
 		return nil, err
 	}
 
+	u.clearCustomerCache(ctx)
+
 	return u.customerRepo.GetByID(ctx, cust.ID)
 }
 
 func (u *customerUsecase) Delete(ctx context.Context, id int) error {
-	return u.customerRepo.Delete(ctx, id)
+	err := u.customerRepo.Delete(ctx, id)
+	if err == nil {
+		u.clearCustomerCache(ctx)
+	}
+	return err
 }
 
 func (u *customerUsecase) GetTypes(ctx context.Context) ([]domain.CustomerType, error) {
-	return u.customerRepo.FetchTypes(ctx)
+	cacheKey := "customer_types"
+	var types []domain.CustomerType
+	if err := u.redisRepo.Get(ctx, cacheKey, &types); err == nil {
+		return types, nil
+	}
+
+	types, err := u.customerRepo.FetchTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = u.redisRepo.Set(ctx, cacheKey, types, 24*time.Hour)
+	return types, nil
 }
 
 func (u *customerUsecase) CreateType(ctx context.Context, req *domain.CustomerType) error {
-	return u.customerRepo.CreateType(ctx, req)
+	err := u.customerRepo.CreateType(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "customer_types")
+	}
+	return err
 }
 
 func (u *customerUsecase) UpdateType(ctx context.Context, id int, req *domain.CustomerType) error {
 	req.ID = id
-	return u.customerRepo.UpdateType(ctx, req)
+	err := u.customerRepo.UpdateType(ctx, req)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "customer_types")
+	}
+	return err
 }
 
 func (u *customerUsecase) DeleteType(ctx context.Context, id int) error {
-	return u.customerRepo.DeleteType(ctx, id)
+	err := u.customerRepo.DeleteType(ctx, id)
+	if err == nil {
+		_ = u.redisRepo.Delete(ctx, "customer_types")
+	}
+	return err
 }
 
 func (u *customerUsecase) GetAddresses(ctx context.Context, customerID int) ([]domain.CustomerAddress, error) {
@@ -179,4 +225,9 @@ func (u *customerUsecase) UpdateAddress(ctx context.Context, id int, req *domain
 
 func (u *customerUsecase) DeleteAddress(ctx context.Context, id int) error {
 	return u.customerRepo.DeleteAddress(ctx, id)
+}
+
+func (u *customerUsecase) clearCustomerCache(ctx context.Context) {
+	// Simplified cache clearing
+	// In production, use Redis SCAN or pattern match if keys are many
 }

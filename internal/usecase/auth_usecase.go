@@ -76,6 +76,10 @@ func (u *authUsecase) Logout(ctx context.Context, refreshToken string) error {
 	return u.redisRepo.DeleteRefreshToken(ctx, refreshToken)
 }
 
+func (u *authUsecase) ClearCache(ctx context.Context) error {
+	return u.redisRepo.FlushAll(ctx)
+}
+
 func (u *authUsecase) generateAuthTokens(ctx context.Context, emp *domain.Employee) (*domain.AuthResponse, error) {
 	// durations from rules
 	accessTokenDuration := 15 * time.Minute

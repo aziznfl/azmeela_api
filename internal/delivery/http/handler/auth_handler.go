@@ -165,3 +165,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	h.clearAuthCookies(c)
 	SuccessResponse(c, http.StatusOK, "Berhasil keluar dari sistem", nil)
 }
+
+// ClearCache godoc
+// @Summary      Clear all cache
+// @Description  Clears all keys in Redis (Flushes the database)
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200          {object}  map[string]interface{}
+// @Failure      500          {object}  map[string]interface{}
+// @Router       /cache/clear [get]
+func (h *AuthHandler) ClearCache(c *gin.Context) {
+	ctx := c.Request.Context()
+	err := h.Usecase.ClearCache(ctx)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Gagal membersihkan cache")
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Berhasil membersihkan seluruh cache", nil)
+}

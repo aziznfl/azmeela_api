@@ -43,12 +43,12 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 	overtimeUcase := usecase.NewOvertimeUsecase(overtimeRepo)
 	cashAdvanceUcase := usecase.NewCashAdvanceUsecase(cashAdvanceRepo)
 	holidayUcase := usecase.NewHolidayUsecase(holidayRepo)
-	reportUcase := usecase.NewReportUsecase(reportRepo)
+	reportUcase := usecase.NewReportUsecase(reportRepo, redisRepo)
 	salaryVarUcase := usecase.NewSalaryVariableUsecase(salaryVarRepo)
-	customerUcase := usecase.NewCustomerUsecase(customerRepo)
+	customerUcase := usecase.NewCustomerUsecase(customerRepo, redisRepo)
 	transactionUcase := usecase.NewTransactionUsecase(transactionRepo, productRepo)
 	payrollUcase := usecase.NewPayrollUsecase(employeeRepo, overtimeRepo, cashAdvanceRepo, salaryVarRepo)
-	productUcase := usecase.NewProductUsecase(productRepo)
+	productUcase := usecase.NewProductUsecase(productRepo, redisRepo)
 	adminTypeUcase := usecase.NewAdminTypeUsecase(adminTypeRepo)
 
 	// App level Auth Middleware
@@ -67,6 +67,8 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 		authRoutes.POST("/refresh", authHandler.Refresh)
 		authRoutes.POST("/logout", authHandler.Logout)
 	}
+
+	r.GET("/cache/clear", authMiddleware, authHandler.ClearCache)
 
 	// 1. Employees (Implementation complete, protected by auth)
 	employeeHandler := handler.NewEmployeeHandler(employeeUcase)
