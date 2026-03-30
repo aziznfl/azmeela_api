@@ -44,6 +44,13 @@ func (ProductCode) TableName() string {
 	return "product_codes"
 }
 
+type ProductCodeWithType struct {
+	ID              int    `json:"id"`
+	ProductTypeID   int    `json:"product_type_id"`
+	Name            string `json:"name"`
+	ProductTypeName string `json:"product_type_name"`
+}
+
 type Product struct {
 	ID            int            `gorm:"primaryKey;column:id;autoIncrement"`
 	ProductCodeID int            `gorm:"column:product_code_id;uniqueIndex:idx_product_variation"`
@@ -115,22 +122,27 @@ type ProductRepository interface {
 	FetchSizes(ctx context.Context) ([]ProductSize, error)
 	
 	FetchCodes(ctx context.Context, filter map[string]interface{}) ([]ProductCode, error)
+	FetchCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]ProductCodeWithType, error)
 	GetCodeByID(ctx context.Context, id int) (*ProductCode, error)
 	CreateCode(ctx context.Context, code *ProductCode) error
 	UpdateCode(ctx context.Context, code *ProductCode) error
 	DeleteCode(ctx context.Context, id int) error
 
 	FetchPrices(ctx context.Context, filter map[string]interface{}) ([]ProductPrice, error)
+	GetPriceByID(ctx context.Context, id int) (*ProductPrice, error)
 	UpdateStock(ctx context.Context, id int, quantity int, adminID int) error
 	GetStockLogs(ctx context.Context, productPriceID int) ([]ProductStockLog, error)
 
 	CreateProduct(ctx context.Context, product *Product) error
 	UpdateProduct(ctx context.Context, product *Product) error
 	DeleteProduct(ctx context.Context, id int) error
+	FetchColors(ctx context.Context, productCodeID int) ([]ProductColorResponse, error)
+	FetchSizesType(ctx context.Context, productID int, customerTypeID int) ([]ProductSizeTypeResponse, error)
 }
 
 type ProductUsecase interface {
 	GetInventoryList(ctx context.Context, filter map[string]interface{}) ([]ProductCode, error)
+	GetCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]ProductCodeWithType, error)
 	
 	GetProductTypes(ctx context.Context) ([]ProductType, error)
 	CreateProductType(ctx context.Context, req *ProductType) error
@@ -148,4 +160,6 @@ type ProductUsecase interface {
 	GetProductSizes(ctx context.Context) ([]ProductSize, error)
 	UpdateStock(ctx context.Context, id int, quantity int, adminID int) error
 	GetStockLogs(ctx context.Context, productPriceID int) ([]ProductStockLog, error)
+	GetProductColors(ctx context.Context, productCodeID int) ([]ProductColorResponse, error)
+	GetProductSizesType(ctx context.Context, productID int, customerTypeID int) ([]ProductSizeTypeResponse, error)
 }

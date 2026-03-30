@@ -20,6 +20,10 @@ func (u *productUsecase) GetInventoryList(ctx context.Context, filter map[string
 	return u.productRepo.FetchCodes(ctx, filter)
 }
 
+func (u *productUsecase) GetCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCodeWithType, error) {
+	return u.productRepo.FetchCodesWithTypes(ctx, filter)
+}
+
 func (u *productUsecase) GetProductTypes(ctx context.Context) ([]domain.ProductType, error) {
 	return u.productRepo.FetchTypes(ctx)
 }
@@ -70,4 +74,12 @@ func (u *productUsecase) DeleteProduct(ctx context.Context, id int) error {
 
 func (u *productUsecase) GetStockLogs(ctx context.Context, productPriceID int) ([]domain.ProductStockLog, error) {
 	return u.productRepo.GetStockLogs(ctx, productPriceID)
+}
+
+func (u *productUsecase) GetProductColors(ctx context.Context, productCodeID int) ([]domain.ProductColorResponse, error) {
+	return u.productRepo.FetchColors(ctx, productCodeID)
+}
+
+func (u *productUsecase) GetProductSizesType(ctx context.Context, productID int, customerTypeID int) ([]domain.ProductSizeTypeResponse, error) {
+	return u.productRepo.FetchSizesType(ctx, productID, customerTypeID)
 }

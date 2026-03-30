@@ -82,7 +82,7 @@ type TransactionRequest struct {
 	ShippingCost    int                        `json:"shipping_cost"`
 	TrackingNumber  *string                    `json:"tracking_number"`
 	Courier         *string                    `json:"courier"`
-	TransactionCode string                     `json:"transaction_code" binding:"required"`
+	TransactionCode string                     `json:"transaction_code"`
 	Total           int                        `json:"total" binding:"required"`
 	Address         string                     `json:"address" binding:"required"`
 	PaymentCode     int                        `json:"payment_code"`

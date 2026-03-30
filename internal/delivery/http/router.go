@@ -210,9 +210,12 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 		products.GET("/inventory", productHandler.GetInventory)
 		products.GET("/inventory/logs/:id", productHandler.GetStockLogs)
 		products.GET("/sizes", productHandler.GetSizes)
+		products.GET("/sizes_type", productHandler.GetSizesType)
+		products.GET("/colors", productHandler.GetColors)
 		products.PUT("/inventory/:id/stock", productHandler.UpdateStock)
 
 		products.GET("/codes", productHandler.GetCodes)
+		products.GET("/code_with_types", productHandler.GetCodesWithTypes)
 		products.POST("/codes", productHandler.CreateCode)
 		products.PUT("/codes/:id", productHandler.UpdateCode)
 		products.DELETE("/codes/:id", productHandler.DeleteCode)

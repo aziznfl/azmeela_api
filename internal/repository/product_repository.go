@@ -80,6 +80,20 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	return codes, err
 }
 
+func (r *productRepository) FetchCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCodeWithType, error) {
+	var results []domain.ProductCodeWithType
+	query := r.db.WithContext(ctx).Table("product_codes").
+		Select("product_codes.id, product_codes.product_type_id, product_codes.name, product_types.name as product_type_name").
+		Joins("LEFT JOIN product_types ON product_codes.product_type_id = product_types.id")
+
+	if custTypeID, ok := filter["customer_type_id"].(int); ok && custTypeID != 0 {
+		query = query.Where("EXISTS (SELECT 1 FROM products p JOIN product_prices pp ON p.id = pp.product_id WHERE p.product_code_id = product_codes.id AND pp.customer_type_id = ?)", custTypeID)
+	}
+
+	err := query.Order("LOWER(product_codes.name) ASC").Scan(&results).Error
+	return results, err
+}
+
 func (r *productRepository) GetCodeByID(ctx context.Context, id int) (*domain.ProductCode, error) {
 	var code domain.ProductCode
 	err := r.db.WithContext(ctx).
@@ -122,6 +136,11 @@ func (r *productRepository) FetchPrices(ctx context.Context, filter map[string]i
 
 	err := query.Order("product_prices.updated_at DESC").Find(&prices).Error
 	return prices, err
+}
+func (r *productRepository) GetPriceByID(ctx context.Context, id int) (*domain.ProductPrice, error) {
+	var pp domain.ProductPrice
+	err := r.db.WithContext(ctx).First(&pp, id).Error
+	return &pp, err
 }
 
 func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity int, adminID int) error {
@@ -175,4 +194,25 @@ func (r *productRepository) UpdateProduct(ctx context.Context, product *domain.P
 
 func (r *productRepository) DeleteProduct(ctx context.Context, id int) error {
 	return r.db.WithContext(ctx).Delete(&domain.Product{}, id).Error
+}
+
+func (r *productRepository) FetchColors(ctx context.Context, productCodeID int) ([]domain.ProductColorResponse, error) {
+	var results []domain.ProductColorResponse
+	err := r.db.WithContext(ctx).Table("products").
+		Select("id, product_code_id, color").
+		Where("product_code_id = ?", productCodeID).
+		Order("LOWER(color) ASC").
+		Scan(&results).Error
+	return results, err
+}
+
+func (r *productRepository) FetchSizesType(ctx context.Context, productID int, customerTypeID int) ([]domain.ProductSizeTypeResponse, error) {
+	var results []domain.ProductSizeTypeResponse
+	err := r.db.WithContext(ctx).Table("product_prices").
+		Select("product_prices.id, product_sizes.name as size_name, product_prices.price, product_prices.stock, product_prices.weight").
+		Joins("LEFT JOIN product_sizes ON product_prices.product_size_id = product_sizes.id").
+		Where("product_prices.product_id = ? AND product_prices.customer_type_id = ?", productID, customerTypeID).
+		Order("product_prices.product_size_id ASC").
+		Scan(&results).Error
+	return results, err
 }

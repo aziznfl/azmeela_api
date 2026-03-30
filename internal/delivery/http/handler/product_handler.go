@@ -20,7 +20,7 @@ func NewProductHandler(u domain.ProductUsecase) *ProductHandler {
 
 func (h *ProductHandler) GetInventory(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	filter := make(map[string]interface{})
 	if productCodeID := c.Query("product_code_id"); productCodeID != "" {
 		id, _ := strconv.Atoi(productCodeID)
@@ -46,7 +46,7 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 
 func (h *ProductHandler) GetCodes(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	filter := make(map[string]interface{})
 	if typeID := c.Query("product_type_id"); typeID != "" {
 		id, _ := strconv.Atoi(typeID)
@@ -60,6 +60,23 @@ func (h *ProductHandler) GetCodes(c *gin.Context) {
 	}
 
 	SuccessResponse(c, http.StatusOK, "Daftar kode produk berhasil diambil", dto.ToProductCodeListResponse(codes))
+}
+
+func (h *ProductHandler) GetCodesWithTypes(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	filter := make(map[string]interface{})
+	if customerTypeID := c.Query("customer_type_id"); customerTypeID != "" {
+		id, _ := strconv.Atoi(customerTypeID)
+		filter["customer_type_id"] = id
+	}
+
+	codes, err := h.Usecase.GetCodesWithTypes(ctx, filter)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Daftar kode produk dengan tipe berhasil diambil", codes)
 }
 
 func (h *ProductHandler) GetTypes(c *gin.Context) {
@@ -85,7 +102,7 @@ func (h *ProductHandler) GetSizes(c *gin.Context) {
 func (h *ProductHandler) UpdateStock(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
-	
+
 	payload := c.MustGet("authorization_payload").(*token.Payload)
 
 	var req struct {
@@ -121,7 +138,7 @@ func (h *ProductHandler) CreateType(c *gin.Context) {
 func (h *ProductHandler) UpdateType(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
-	
+
 	var req domain.ProductType
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -163,7 +180,7 @@ func (h *ProductHandler) CreateCode(c *gin.Context) {
 func (h *ProductHandler) UpdateCode(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
-	
+
 	var req domain.ProductCode
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -231,7 +248,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 func (h *ProductHandler) GetStockLogs(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
-	
+
 	logs, err := h.Usecase.GetStockLogs(ctx, id)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
@@ -239,4 +256,31 @@ func (h *ProductHandler) GetStockLogs(c *gin.Context) {
 	}
 
 	SuccessResponse(c, http.StatusOK, "Log stok berhasil diambil", dto.ToProductStockLogListResponse(logs))
+}
+
+func (h *ProductHandler) GetColors(c *gin.Context) {
+	ctx := c.Request.Context()
+	productCodeID, _ := strconv.Atoi(c.Query("product_code_id"))
+
+	colors, err := h.Usecase.GetProductColors(ctx, productCodeID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Daftar warna produk berhasil diambil", colors)
+}
+
+func (h *ProductHandler) GetSizesType(c *gin.Context) {
+	ctx := c.Request.Context()
+	productID, _ := strconv.Atoi(c.Query("product_id"))
+	customerTypeID, _ := strconv.Atoi(c.Query("customer_type_id"))
+
+	sizes, err := h.Usecase.GetProductSizesType(ctx, productID, customerTypeID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Daftar ukuran dan harga produk berhasil diambil", sizes)
 }

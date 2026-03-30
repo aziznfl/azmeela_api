@@ -55,13 +55,49 @@ func (u *transactionUsecase) GetByID(ctx context.Context, id int) (*domain.Trans
 }
 
 func (u *transactionUsecase) Create(ctx context.Context, req *domain.TransactionRequest) (*domain.Transaction, error) {
-	details := make([]domain.TransactionDetail, len(req.Details))
-	for i, d := range req.Details {
-		details[i] = domain.TransactionDetail{
-			ProductPriceID: d.ProductPriceID,
-			Quantity:       d.Quantity,
-			Price:          d.Price,
+	var details []domain.TransactionDetail
+	var subtotal int
+	for _, d := range req.Details {
+		// Verify stock
+		pp, err := u.productRepo.GetPriceByID(ctx, d.ProductPriceID)
+		if err != nil {
+			continue // Skip if price not found or error
 		}
+
+		// Only include if quantity <= stock and valid
+		if d.Quantity > 0 && d.Quantity <= pp.Stock {
+			details = append(details, domain.TransactionDetail{
+				ProductPriceID: d.ProductPriceID,
+				Quantity:       d.Quantity,
+				Price:          d.Price,
+			})
+			subtotal += d.Quantity * d.Price
+		}
+	}
+
+	// Recalculate total based on valid details
+	// Discount and shipping cost are added later from req
+	var calculatedTotal int
+	if req.DiscountType == 1 { // Percentage
+		discountValue := (subtotal * req.Discount) / 100
+		calculatedTotal = subtotal - discountValue
+	} else { // Nominal
+		calculatedTotal = subtotal - req.Discount
+	}
+
+	calculatedTotal += req.ShippingCost + req.PaymentCode
+	if calculatedTotal < 0 {
+		calculatedTotal = 0
+	}
+	req.Total = calculatedTotal
+
+	// Auto-generate code if empty
+	if req.TransactionCode == "" {
+		code, err := u.GenerateTransactionCode(ctx)
+		if err != nil {
+			return nil, err
+		}
+		req.TransactionCode = code
 	}
 
 	tx := &domain.Transaction{
@@ -164,17 +200,43 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 		tx.DiscountType = req.DiscountType
 		tx.IsReminded = req.IsReminded
 
-		// Update Details
-		newDetails := make([]domain.TransactionDetail, len(req.Details))
-		for i, d := range req.Details {
-			newDetails[i] = domain.TransactionDetail{
-				TransactionID:  tx.ID,
-				ProductPriceID: d.ProductPriceID,
-				Quantity:       d.Quantity,
-				Price:          d.Price,
+		var newDetails []domain.TransactionDetail
+		var subtotal int
+		for _, d := range req.Details {
+			// Verify stock (need to consider that current items in this transaction are already "holding" some stock)
+			// But wait, Update method at line 155 REVERTS old stock before checking.
+			// So we can just check against current pp.Stock.
+			pp, err := u.productRepo.GetPriceByID(ctx, d.ProductPriceID)
+			if err != nil {
+				continue
+			}
+
+			if d.Quantity > 0 && d.Quantity <= pp.Stock {
+				newDetails = append(newDetails, domain.TransactionDetail{
+					TransactionID:  tx.ID,
+					ProductPriceID: d.ProductPriceID,
+					Quantity:       d.Quantity,
+					Price:          d.Price,
+				})
+				subtotal += d.Quantity * d.Price
 			}
 		}
 		tx.Details = newDetails
+
+		// Recalculate total
+		var calculatedTotal int
+		if tx.DiscountType == 1 { // Percentage
+			discountValue := (subtotal * tx.Discount) / 100
+			calculatedTotal = subtotal - discountValue
+		} else { // Nominal
+			calculatedTotal = subtotal - tx.Discount
+		}
+
+		calculatedTotal += tx.ShippingCost + tx.PaymentCode
+		if calculatedTotal < 0 {
+			calculatedTotal = 0
+		}
+		tx.Total = calculatedTotal
 	}
 
 	// Senior Trick: Clear associations pointers before Save to prevent GORM 
