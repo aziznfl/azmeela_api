@@ -7,21 +7,19 @@ import (
 
 // Attendance represents the presences table in the database
 type Attendance struct {
-	ID           int       `gorm:"primaryKey;column:id;autoIncrement"`
-	EmployeeID   int       `gorm:"column:employee_id"`
-	Date         time.Time `gorm:"column:presence_date;type:date"`
-	TimeIn       string    `gorm:"column:start_time;type:time"`
-	TimeOut      *string   `gorm:"column:end_time;type:time"`
-	Location     *string   `gorm:"column:location"`
-	Note         *string   `gorm:"column:note"`
-	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	EmployeeName string    `gorm:"<-:false;column:employee_name"`
+	ID           int       `gorm:"primaryKey;column:id_presensi;autoIncrement"`
+	EmployeeID   int       `gorm:"column:id_admin"`
+	Date         time.Time `gorm:"column:tanggal;type:date"`
+	TimeIn       string    `gorm:"column:jam_masuk;type:time"`
+	TimeOut      *string   `gorm:"column:jam_keluar;type:time"`
+	Location     *string   `gorm:"-"`
+	Note         *string   `gorm:"-"`
+	EmployeeName string    `gorm:"-"`
 }
 
 // TableName overrides the table name used by Gorm
 func (Attendance) TableName() string {
-	return "presences"
+	return "t_presensi"
 }
 
 type AttendanceResponse struct {

@@ -6,18 +6,17 @@ import (
 )
 
 type CashAdvance struct {
-	ID           int       `gorm:"primaryKey;column:id;autoIncrement"`
-	EmployeeID   int       `gorm:"column:admin_id"`
-	Amount       int       `gorm:"column:amount"`
-	Purpose      string    `gorm:"column:purpose"`
+	ID           int       `gorm:"primaryKey;column:id_kasbon;autoIncrement"`
+	EmployeeID   int       `gorm:"column:id_admin"`
+	Amount       int       `gorm:"column:jumlah"`
+	Purpose      string    `gorm:"column:keperluan"`
 	Status       int       `gorm:"column:status"` // 0: created, 1: approved, 2: disapproved
-	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	EmployeeName string    `gorm:"<-:false;column:employee_name"`
+	CreatedAt    time.Time `gorm:"column:tanggal;autoCreateTime"`
+	EmployeeName string    `gorm:"-"`
 }
 
 func (CashAdvance) TableName() string {
-	return "cash_advances"
+	return "t_kasbon"
 }
 
 type CashAdvanceResponse struct {
@@ -31,16 +30,16 @@ type CashAdvanceResponse struct {
 }
 
 type CashAdvanceHistory struct {
-	ID         int       `gorm:"primaryKey;column:id;autoIncrement"`
-	EmployeeID int       `gorm:"column:admin_id"`
+	ID         int       `gorm:"primaryKey;column:id_history;autoIncrement"`
+	EmployeeID int       `gorm:"column:id_admin"`
 	Date       time.Time `gorm:"column:tanggal;type:date"`
-	Amount     int       `gorm:"column:amount"`
+	Amount     int       `gorm:"column:jumlah"`
 	Type       int       `gorm:"column:tipe"` // 1: debt, 2: payment
-	Purpose    string    `gorm:"column:purpose"`
+	Purpose    string    `gorm:"-"`
 }
 
 func (CashAdvanceHistory) TableName() string {
-	return "cash_advance_histories"
+	return "t_kasbon_history"
 }
 
 type CashAdvanceRequest struct {

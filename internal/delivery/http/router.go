@@ -5,11 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
-	_ "github.com/azmeela/sispeg-api/docs"
 	"github.com/azmeela/sispeg-api/internal/delivery/http/handler"
 	"github.com/azmeela/sispeg-api/internal/delivery/http/middleware"
 	"github.com/azmeela/sispeg-api/internal/repository"
@@ -20,9 +17,8 @@ import (
 // SetupRouter will handle all routes initialization
 func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker token.TokenMaker) {
 
-	// Health Check & Swagger
+	// Health Check
 	r.GET("/health", HealthCheck)
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Initialize Repositories
 	employeeRepo := repository.NewEmployeeRepository(db)

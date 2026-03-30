@@ -19,7 +19,7 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 	var customers []domain.Customer
 	var total int64
 
-	query := r.db.WithContext(ctx).Model(&domain.Customer{}).Where("is_active = ?", true)
+	query := r.db.WithContext(ctx).Model(&domain.Customer{})
 
 	order := "DESC"
 	if ord, ok := filter["order"]; ok {
@@ -27,10 +27,10 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 		delete(filter, "order")
 	}
 
-	sortOrder := "customers.created_at " + order
+	sortOrder := "t_customer.date_sign " + order
 	if sortBy, ok := filter["sort_by"]; ok {
 		if sortBy == "id" {
-			sortOrder = "customers.id " + order
+			sortOrder = "t_customer.id_customer " + order
 		}
 		delete(filter, "sort_by")
 	}
@@ -38,7 +38,7 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 	for k, v := range filter {
 		if k == "search" {
 			searchVal := "%" + v.(string) + "%"
-			query = query.Where("LOWER(full_name) LIKE LOWER(?)", searchVal)
+			query = query.Where("LOWER(name_customer) LIKE LOWER(?)", searchVal)
 		} else {
 			query = query.Where(k+" = ?", v)
 		}
@@ -58,7 +58,7 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 
 func (r *customerRepository) GetByID(ctx context.Context, id int) (*domain.Customer, error) {
 	var customer domain.Customer
-	err := r.db.WithContext(ctx).Joins("CustomerType").Where("customers.is_active = ?", true).First(&customer, id).Error
+	err := r.db.WithContext(ctx).Joins("CustomerType").First(&customer, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (r *customerRepository) GetByID(ctx context.Context, id int) (*domain.Custo
 
 func (r *customerRepository) GetByUsername(ctx context.Context, username string) (*domain.Customer, error) {
 	var customer domain.Customer
-	err := r.db.WithContext(ctx).Joins("CustomerType").Where("customers.username = ? AND customers.is_active = ?", username, true).First(&customer).Error
+	err := r.db.WithContext(ctx).Joins("CustomerType").Where("t_customer.username = ?", username).First(&customer).Error
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +83,12 @@ func (r *customerRepository) Update(ctx context.Context, customer *domain.Custom
 }
 
 func (r *customerRepository) Delete(ctx context.Context, id int) error {
-	return r.db.WithContext(ctx).Model(&domain.Customer{}).Where("id = ?", id).Update("is_active", false).Error
+	return r.db.WithContext(ctx).Delete(&domain.Customer{}, id).Error
 }
 
 func (r *customerRepository) FetchTypes(ctx context.Context) ([]domain.CustomerType, error) {
 	var types []domain.CustomerType
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&types).Error
+	err := r.db.WithContext(ctx).Order("id_customer_type ASC").Find(&types).Error
 	return types, err
 }
 
@@ -112,7 +112,7 @@ func (r *customerRepository) DeleteType(ctx context.Context, id int) error {
 
 func (r *customerRepository) FetchAddresses(ctx context.Context, customerID int) ([]domain.CustomerAddress, error) {
 	var addresses []domain.CustomerAddress
-	err := r.db.WithContext(ctx).Where("customer_id = ?", customerID).Order("id ASC").Find(&addresses).Error
+	err := r.db.WithContext(ctx).Where("id_customer = ?", customerID).Order("id_customer_alamat ASC").Find(&addresses).Error
 	return addresses, err
 }
 

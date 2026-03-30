@@ -44,7 +44,6 @@ func ToCashAdvanceResponse(ca *domain.CashAdvance) *CashAdvanceResponse {
 		Purpose:      ca.Purpose,
 		Status:       ca.Status,
 		CreatedAt:    ca.CreatedAt,
-		UpdatedAt:    ca.UpdatedAt,
 	}
 }
 

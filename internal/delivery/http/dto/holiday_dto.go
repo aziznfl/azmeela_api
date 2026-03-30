@@ -27,7 +27,7 @@ func ToHolidayResponse(h *domain.Holiday) *HolidayResponse {
 		ID:          h.ID,
 		HolidayDate: h.HolidayDate,
 		Description: h.Description,
-		IsRecurring: h.IsRecurring,
+		IsRecurring: h.IsRecurring == 1,
 	}
 }
 

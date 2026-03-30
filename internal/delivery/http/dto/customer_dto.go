@@ -36,8 +36,6 @@ type CustomerAddressResponse struct {
 	SubDistrict   string    `json:"sub_district,omitempty"`
 	StreetAddress string    `json:"street_address"`
 	PostalCode    string    `json:"postal_code"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func ToCustomerResponse(c *domain.Customer) *CustomerResponse {
@@ -110,8 +108,6 @@ func ToCustomerAddressResponse(a *domain.CustomerAddress) *CustomerAddressRespon
 		SubDistrict:   subDistrict,
 		StreetAddress: a.StreetAddress,
 		PostalCode:    postalCode,
-		CreatedAt:     a.CreatedAt,
-		UpdatedAt:     a.UpdatedAt,
 	}
 }
 

@@ -47,7 +47,6 @@ func main() {
 
 	// Initialize Logger
 	logger.InitLogger()
-	defer logger.Log.Sync()
 	logger.Log.Info("Starting Azmeela Internal API")
 
 	// Initialize Postgres Database Connection

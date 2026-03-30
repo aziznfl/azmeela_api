@@ -4,14 +4,14 @@ import "context"
 
 // SalaryVariable represents configurable salary components (allowances, deductions, etc.)
 type SalaryVariable struct {
-	ID    int    `gorm:"primaryKey;column:id;autoIncrement"`
-	Name  string `gorm:"column:name"`
-	Type  int    `gorm:"column:type"`   // "allowance" or "deduction"
-	Value int    `gorm:"column:value"` // Fixed amount (used when is_percentage is false)
+	ID    int    `gorm:"primaryKey;column:id_variable;autoIncrement"`
+	Name  string `gorm:"column:nama_variable"`
+	Type  int    `gorm:"column:tipe_variable"`   // "allowance" or "deduction"
+	Value int    `gorm:"column:nilai_variable"` // Fixed amount
 }
 
 func (SalaryVariable) TableName() string {
-	return "salary_variables"
+	return "t_variable_gaji"
 }
 
 // SalaryVariableRequest is the payload for creating/updating a salary variable

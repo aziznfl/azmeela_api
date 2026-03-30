@@ -67,10 +67,6 @@ func (u *customerUsecase) Create(ctx context.Context, req *domain.CustomerReques
 		MembershipStatus: req.MembershipStatus,
 		Username:         req.Username,
 		Email:            req.Email,
-		IsActive:         true,
-	}
-	if req.IsActive != nil {
-		cust.IsActive = *req.IsActive
 	}
 
 	// Default membership status if empty
@@ -101,7 +97,7 @@ func (u *customerUsecase) Update(ctx context.Context, id int, req *domain.Custom
 	cust.Username = req.Username
 	cust.Email = req.Email
 	if req.IsActive != nil {
-		cust.IsActive = *req.IsActive
+		// handle removed is_active field
 	}
 
 	err = u.customerRepo.Update(ctx, cust)

@@ -6,20 +6,18 @@ import (
 )
 
 type Leave struct {
-	ID           int       `gorm:"primaryKey;column:id;autoIncrement"`
-	EmployeeID   int       `gorm:"column:admin_id"`
-	Type         int       `gorm:"column:type"` // 0: leave, 1: sick leave
-	LeaveDate    time.Time `gorm:"column:leave_date;type:date"`
-	Durations    int       `gorm:"column:durations"`
+	ID           int       `gorm:"primaryKey;column:id_cuti;autoIncrement"`
+	EmployeeID   int       `gorm:"column:id_admin"`
+	Type         int       `gorm:"column:grouping"` // 0: leave, 1: sick leave
+	LeaveDate    time.Time `gorm:"column:tanggal;type:date"`
+	Durations    int       `gorm:"-"`
 	Status       int       `gorm:"column:status"` // 0: created, 1: accepted, 2: rejected
-	Description  string    `gorm:"column:description"`
-	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	EmployeeName string    `gorm:"<-:false;column:employee_name"`
+	Description  string    `gorm:"column:keterangan"`
+	EmployeeName string    `gorm:"-"`
 }
 
 func (Leave) TableName() string {
-	return "leaves"
+	return "t_cuti"
 }
 
 type LeaveResponse struct {

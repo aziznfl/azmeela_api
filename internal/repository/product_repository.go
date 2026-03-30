@@ -17,7 +17,7 @@ func NewProductRepository(db *gorm.DB) domain.ProductRepository {
 
 func (r *productRepository) FetchTypes(ctx context.Context) ([]domain.ProductType, error) {
 	var types []domain.ProductType
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&types).Error
+	err := r.db.WithContext(ctx).Order("id_product_type ASC").Find(&types).Error
 	return types, err
 }
 
@@ -51,12 +51,12 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	query := r.db.WithContext(ctx).Model(&domain.ProductCode{})
 	query = query.Preload("Type").
 		Preload("Products", func(db *gorm.DB) *gorm.DB {
-			return db.Order("products.color ASC")
+			return db.Order("color ASC")
 		})
 
 	if custTypeID, ok := filter["customer_type_id"].(int); ok && custTypeID != 0 {
-		query = query.Where("EXISTS (SELECT 1 FROM products p JOIN product_prices pp ON p.id = pp.product_id WHERE p.product_code_id = product_codes.id AND pp.customer_type_id = ?)", custTypeID)
-		query = query.Preload("Products.Variants", "customer_type_id = ?", custTypeID)
+		query = query.Where("EXISTS (SELECT 1 FROM t_product p JOIN t_product_price pp ON p.id_product = pp.id_product WHERE p.id_product_code = t_product_code.id_product_code AND pp.id_customer_type = ?)", custTypeID)
+		query = query.Preload("Products.Variants", "id_customer_type = ?", custTypeID)
 	} else {
 		query = query.Preload("Products.Variants")
 	}
@@ -65,32 +65,32 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	query = query.Preload("Products.Variants.CustomerType")
 
 	if name, ok := filter["name"].(string); ok && name != "" {
-		query = query.Where("product_codes.name ILIKE ?", "%"+name+"%")
+		query = query.Where("name_product_code ILIKE ?", "%"+name+"%")
 	}
 
 	if typeID, ok := filter["product_type_id"].(int); ok && typeID != 0 {
-		query = query.Where("product_codes.product_type_id = ?", typeID)
+		query = query.Where("id_product_type = ?", typeID)
 	}
 
 	if codeID, ok := filter["product_code_id"].(int); ok && codeID != 0 {
-		query = query.Where("product_codes.id = ?", codeID)
+		query = query.Where("id_product_code = ?", codeID)
 	}
 
-	err := query.Order("product_codes.updated_at DESC").Find(&codes).Error
+	err := query.Order("date DESC").Find(&codes).Error
 	return codes, err
 }
 
 func (r *productRepository) FetchCodesWithTypes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCodeWithType, error) {
 	var results []domain.ProductCodeWithType
-	query := r.db.WithContext(ctx).Table("product_codes").
-		Select("product_codes.id, product_codes.product_type_id, product_codes.name, product_types.name as product_type_name").
-		Joins("LEFT JOIN product_types ON product_codes.product_type_id = product_types.id")
+	query := r.db.WithContext(ctx).Table("t_product_code").
+		Select("t_product_code.id_product_code as id, t_product_code.id_product_type as product_type_id, t_product_code.name_product_code as name, t_product_type.name_product_type as product_type_name").
+		Joins("LEFT JOIN t_product_type ON t_product_code.id_product_type = t_product_type.id_product_type")
 
 	if custTypeID, ok := filter["customer_type_id"].(int); ok && custTypeID != 0 {
-		query = query.Where("EXISTS (SELECT 1 FROM products p JOIN product_prices pp ON p.id = pp.product_id WHERE p.product_code_id = product_codes.id AND pp.customer_type_id = ?)", custTypeID)
+		query = query.Where("EXISTS (SELECT 1 FROM t_product p JOIN t_product_price pp ON p.id_product = pp.id_product WHERE p.id_product_code = t_product_code.id_product_code AND pp.id_customer_type = ?)", custTypeID)
 	}
 
-	err := query.Order("LOWER(product_codes.name) ASC").Scan(&results).Error
+	err := query.Order("LOWER(t_product_code.name_product_code) ASC").Scan(&results).Error
 	return results, err
 }
 
@@ -127,14 +127,14 @@ func (r *productRepository) FetchPrices(ctx context.Context, filter map[string]i
 		Joins("Size")
 
 	if productID, ok := filter["product_id"].(int); ok && productID != 0 {
-		query = query.Where("product_prices.product_id = ?", productID)
+		query = query.Where("t_product_price.id_product = ?", productID)
 	}
 
 	if customerTypeID, ok := filter["customer_type_id"].(int); ok && customerTypeID != 0 {
-		query = query.Where("product_prices.customer_type_id = ?", customerTypeID)
+		query = query.Where("t_product_price.id_customer_type = ?", customerTypeID)
 	}
 
-	err := query.Order("product_prices.updated_at DESC").Find(&prices).Error
+	err := query.Order("t_product_price.date DESC").Find(&prices).Error
 	return prices, err
 }
 func (r *productRepository) GetPriceByID(ctx context.Context, id int) (*domain.ProductPrice, error) {
@@ -177,8 +177,8 @@ func (r *productRepository) GetStockLogs(ctx context.Context, productPriceID int
 		Joins("Admin").
 		Joins("ProductPrice").
 		Joins("ProductPrice.Size").
-		Where("product_price_id = ?", productPriceID).
-		Order("input_date DESC").Find(&logs).Error
+		Where("id_product_price = ?", productPriceID).
+		Order("date_input_product DESC").Find(&logs).Error
 	return logs, err
 }
 
@@ -198,9 +198,9 @@ func (r *productRepository) DeleteProduct(ctx context.Context, id int) error {
 
 func (r *productRepository) FetchColors(ctx context.Context, productCodeID int) ([]domain.ProductColorResponse, error) {
 	var results []domain.ProductColorResponse
-	err := r.db.WithContext(ctx).Table("products").
-		Select("id, product_code_id, color").
-		Where("product_code_id = ?", productCodeID).
+	err := r.db.WithContext(ctx).Table("t_product").
+		Select("id_product as id, id_product_code as product_code_id, color").
+		Where("id_product_code = ?", productCodeID).
 		Order("LOWER(color) ASC").
 		Scan(&results).Error
 	return results, err
@@ -208,11 +208,11 @@ func (r *productRepository) FetchColors(ctx context.Context, productCodeID int) 
 
 func (r *productRepository) FetchSizesType(ctx context.Context, productID int, customerTypeID int) ([]domain.ProductSizeTypeResponse, error) {
 	var results []domain.ProductSizeTypeResponse
-	err := r.db.WithContext(ctx).Table("product_prices").
-		Select("product_prices.id, product_sizes.name as size_name, product_prices.price, product_prices.stock, product_prices.weight").
-		Joins("LEFT JOIN product_sizes ON product_prices.product_size_id = product_sizes.id").
-		Where("product_prices.product_id = ? AND product_prices.customer_type_id = ?", productID, customerTypeID).
-		Order("product_prices.product_size_id ASC").
+	err := r.db.WithContext(ctx).Table("t_product_price").
+		Select("t_product_price.id_product_price as id, t_product_size.name_product_size as size_name, t_product_price.price, t_product_price.stock, t_product_price.weight").
+		Joins("LEFT JOIN t_product_size ON t_product_price.id_product_size = t_product_size.id_product_size").
+		Where("t_product_price.id_product = ? AND t_product_price.id_customer_type = ?", productID, customerTypeID).
+		Order("t_product_price.id_product_size ASC").
 		Scan(&results).Error
 	return results, err
 }

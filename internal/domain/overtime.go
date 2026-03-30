@@ -6,20 +6,18 @@ import (
 )
 
 type Overtime struct {
-	ID           int       `gorm:"primaryKey;column:id;autoIncrement"`
-	EmployeeID   int       `gorm:"column:admin_id"`
-	Date         time.Time `gorm:"column:overtime_date;type:date"`
-	TimeIn       string    `gorm:"column:start_time;type:time"`
-	TimeOut      string    `gorm:"column:end_time;type:time"`
+	ID           int       `gorm:"primaryKey;column:id_lembur;autoIncrement"`
+	EmployeeID   int       `gorm:"column:id_admin"`
+	Date         time.Time `gorm:"column:tanggal;type:date"`
+	TimeIn       string    `gorm:"column:jam_masuk;type:time"`
+	TimeOut      string    `gorm:"column:jam_keluar;type:time"`
 	Status       int       `gorm:"column:status"` // 0: created, 1: approved, 2: disapproved
-	Description  string    `gorm:"column:description"`
-	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	EmployeeName string    `gorm:"<-:false;column:employee_name"`
+	Description  string    `gorm:"column:keterangan"`
+	EmployeeName string    `gorm:"-"`
 }
 
 func (Overtime) TableName() string {
-	return "overtimes"
+	return "t_lembur"
 }
 
 type OvertimeResponse struct {

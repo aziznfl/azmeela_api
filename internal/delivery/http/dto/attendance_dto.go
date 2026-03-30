@@ -37,8 +37,6 @@ func ToAttendanceResponse(a *domain.Attendance) *AttendanceResponse {
 		TimeOut:      a.TimeOut,
 		Location:     a.Location,
 		Note:         a.Note,
-		CreatedAt:    a.CreatedAt,
-		UpdatedAt:    a.UpdatedAt,
 	}
 }
 

@@ -6,18 +6,16 @@ import (
 )
 
 type Holiday struct {
-	ID          int       `gorm:"primaryKey;column:id;autoIncrement"`
-	HolidayDate time.Time `gorm:"column:holiday_date;type:date"`
-	Month       int       `gorm:"column:month"`
-	Day         int       `gorm:"column:day"`
-	Description string    `gorm:"column:description"`
-	IsRecurring bool      `gorm:"column:is_recurring;default:true"`
-	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	ID          int       `gorm:"primaryKey;column:id_libur;autoIncrement"`
+	HolidayDate time.Time `gorm:"column:tanggal;type:date"`
+	Month       int       `gorm:"-"`
+	Day         int       `gorm:"-"`
+	Description string    `gorm:"column:nama"`
+	IsRecurring int       `gorm:"column:berulang;default:1"`
 }
 
 func (Holiday) TableName() string {
-	return "holidays"
+	return "t_libur"
 }
 
 type HolidayRequest struct {

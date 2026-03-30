@@ -43,8 +43,6 @@ func ToOvertimeResponse(o *domain.Overtime) *OvertimeResponse {
 		TimeOut:      o.TimeOut,
 		Status:       o.Status,
 		Description:  o.Description,
-		CreatedAt:    o.CreatedAt,
-		UpdatedAt:    o.UpdatedAt,
 	}
 }
 

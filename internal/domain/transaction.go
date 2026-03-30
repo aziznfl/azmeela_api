@@ -6,77 +6,76 @@ import (
 )
 
 type TransactionStatus struct {
-	ID        int    `gorm:"primaryKey;autoIncrement:false"`
-	Name      string `gorm:"type:varchar(20);unique"`
-	Privilege int
+	ID        int    `gorm:"primaryKey;column:id_transaksi_status;autoIncrement"`
+	Name      string `gorm:"column:nama_transaksi_status;type:varchar(20);unique"`
+	Privilege int    `gorm:"column:privilege"`
 }
 
 func (TransactionStatus) TableName() string {
-	return "transaction_statuses"
+	return "t_transaksi_status"
 }
 
 type Transaction struct {
-	ID              int                `gorm:"primaryKey;autoIncrement" json:"id"`
-	CustomerID      int                `json:"customer_id"`
-	Customer        *Customer          `gorm:"foreignKey:CustomerID" json:"customer,omitempty"`
-	AdminID         int                `json:"admin_id"`
-	Admin           *Employee          `gorm:"foreignKey:AdminID" json:"admin,omitempty"`
-	TransferDate    *time.Time         `gorm:"type:date;default:null" json:"transfer_date"`
-	ShippingDate    *time.Time         `gorm:"type:date;default:null" json:"shipping_date"`
-	StatusID        int                `gorm:"default:1" json:"status_id"`
-	Status          *TransactionStatus `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	ShippingCost    int                `json:"shipping_cost"`
-	TrackingNumber  *string            `gorm:"type:varchar(50);default:null" json:"tracking_number"`
-	Courier         *string            `gorm:"type:varchar(30);default:null" json:"courier"`
-	TransactionCode string             `gorm:"type:varchar(15);unique" json:"transaction_code"`
-	Total           int                `json:"total"`
-	Address         string             `gorm:"type:text" json:"address"`
-	PaymentCode     int                `json:"payment_code"`
-	Discount        int                `gorm:"default:0" json:"discount"`
-	DiscountNote    *string            `gorm:"type:varchar(200);default:null" json:"discount_note"`
-	DiscountType    int                `gorm:"default:1" json:"discount_type"`
-	IsReminded      bool               `gorm:"default:false" json:"is_reminded"`
-	CreatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt       time.Time          `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
-	Details         []TransactionDetail `gorm:"foreignKey:TransactionID" json:"details"`
-	Logs            []TransactionLog    `gorm:"foreignKey:TransactionID" json:"logs,omitempty"`
+	ID              int                `gorm:"primaryKey;column:id_transaksi;autoIncrement"`
+	CustomerID      int                `gorm:"column:id_customer"`
+	Customer        *Customer          `gorm:"foreignKey:CustomerID"`
+	AdminID         int                `gorm:"column:id_admin"`
+	Admin           *Employee          `gorm:"foreignKey:AdminID"`
+	TransactionDate time.Time          `gorm:"column:tgl_transaksi;type:timestamp"`
+	CreatedAt       time.Time          `gorm:"column:tgl_cur_time;default:CURRENT_TIMESTAMP"`
+	TransferDate    *time.Time         `gorm:"column:tgl_transfer;type:date;default:null"`
+	ShippingDate    *time.Time         `gorm:"column:tgl_pengiriman;type:date;default:null"`
+	StatusID        int                `gorm:"column:transaksi_status;default:1"`
+	Status          *TransactionStatus `gorm:"foreignKey:StatusID"`
+	ShippingCost    int                `gorm:"column:ongkir"`
+	TrackingNumber  *string            `gorm:"column:resi;type:varchar(50);default:null"`
+	Courier         *string            `gorm:"column:pengantar;type:varchar(30);default:null"`
+	TransactionCode string             `gorm:"column:kode_transaksi;type:varchar(15);unique"`
+	Total           int                `gorm:"column:total"`
+	Address         string             `gorm:"column:alamat;type:text"`
+	PaymentCode     int                `gorm:"column:kode_pembayaran"`
+	Discount        int                `gorm:"column:diskon;default:0"`
+	DiscountNote    *string            `gorm:"column:ket_diskon;type:varchar(200);default:null"`
+	DiscountType    int                `gorm:"column:tipe_diskon;default:1"`
+	IsReminded      int                `gorm:"column:reminded;default:0"`
+	Details         []TransactionDetail `gorm:"foreignKey:TransactionID"`
+	Logs            []TransactionLog    `gorm:"foreignKey:TransactionID"`
 }
 
 type TransactionDetail struct {
-	ID             int           `gorm:"primaryKey;autoIncrement" json:"id"`
-	TransactionID  int           `json:"transaction_id"`
-	ProductPriceID int           `json:"product_price_id"`
-	ProductPrice   *ProductPrice `gorm:"foreignKey:ProductPriceID" json:"product_price,omitempty"`
-	Quantity       int           `json:"quantity"`
-	Price          int           `json:"price"`
+	ID             int           `gorm:"primaryKey;column:id_transaksi_detail;autoIncrement"`
+	TransactionID  int           `gorm:"column:id_transaksi"`
+	ProductPriceID int           `gorm:"column:id_barang"`
+	ProductPrice   *ProductPrice `gorm:"foreignKey:ProductPriceID"`
+	Quantity       int           `gorm:"column:qty"`
+	Price          int           `gorm:"column:harga"`
 	// Virtual fields for frontend convenience
-	ProductCodeID int `gorm:"-" json:"product_code_id"`
-	ProductID     int `gorm:"-" json:"product_id"`
+	ProductCodeID int `gorm:"-"`
+	ProductID     int `gorm:"-"`
 }
 
 func (TransactionDetail) TableName() string {
-	return "transaction_details"
+	return "t_transaksi_detail"
 }
 
 type TransactionLog struct {
-	ID            int                `gorm:"primaryKey;autoIncrement"`
-	TransactionID int
-	AdminID       int
+	ID            int                `gorm:"primaryKey;column:id_transaksi_log;autoIncrement"`
+	TransactionID int                `gorm:"column:id_transaksi"`
+	AdminID       int                `gorm:"column:id_admin"`
 	Admin         *Employee          `gorm:"foreignKey:AdminID"`
-	OldStatusID   int
-	NewStatusID   int
+	OldStatusID   int                `gorm:"column:transaksi_status_old"`
+	NewStatusID   int                `gorm:"column:transaksi_status_new"`
 	OldStatus     *TransactionStatus `gorm:"foreignKey:OldStatusID"`
 	NewStatus     *TransactionStatus `gorm:"foreignKey:NewStatusID"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	CreatedAt     time.Time          `gorm:"column:tgl_transkasi_log;autoCreateTime"`
 }
 
 func (TransactionLog) TableName() string {
-	return "transaction_logs"
+	return "t_transaksi_log"
 }
 
 func (Transaction) TableName() string {
-	return "transactions"
+	return "t_transaksi"
 }
 
 type TransactionRequest struct {
@@ -95,7 +94,7 @@ type TransactionRequest struct {
 	Discount        int
 	DiscountNote    *string
 	DiscountType    int
-	IsReminded      bool
+	IsReminded      int
 	Details         []TransactionDetailRequest
 }
 

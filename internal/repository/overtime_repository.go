@@ -21,21 +21,18 @@ func (r *overtimeRepository) Fetch(ctx context.Context, filter map[string]interf
 
 	// Explicit filtering (Senior BE approach)
 	if empID, ok := filter["admin_id"]; ok {
-		query = query.Where("overtimes.admin_id = ?", empID)
+		query = query.Where("t_lembur.id_admin = ?", empID)
 	}
 	if status, ok := filter["status"]; ok {
-		query = query.Where("overtimes.status = ?", status)
-	}
-	if last7, ok := filter["last_7_days"]; ok && last7 == true {
-		query = query.Where("overtimes.created_at >= CURRENT_DATE - interval '7 days'")
+		query = query.Where("t_lembur.status = ?", status)
 	}
 	if monthYear, ok := filter["month_year"]; ok {
-		query = query.Where("overtimes.overtime_date::text LIKE ?", monthYear)
+		query = query.Where("t_lembur.tanggal::text LIKE ?", monthYear)
 	}
 
-	err := query.Select("overtimes.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = overtimes.admin_id").
-		Order("overtimes.created_at DESC").
+	err := query.Select("t_lembur.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_lembur.id_admin").
+		Order("t_lembur.tanggal DESC").
 		Find(&overtimes).Error
 
 	return overtimes, err
@@ -44,8 +41,8 @@ func (r *overtimeRepository) Fetch(ctx context.Context, filter map[string]interf
 func (r *overtimeRepository) GetByID(ctx context.Context, id int) (*domain.Overtime, error) {
 	var overtime domain.Overtime
 	err := r.db.WithContext(ctx).Model(&domain.Overtime{}).
-		Select("overtimes.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = overtimes.admin_id").
+		Select("t_lembur.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_lembur.id_admin").
 		First(&overtime, id).Error
 	if err != nil {
 		return nil, err
@@ -58,5 +55,5 @@ func (r *overtimeRepository) Store(ctx context.Context, overtime *domain.Overtim
 }
 
 func (r *overtimeRepository) UpdateStatus(ctx context.Context, id int, status int) error {
-	return r.db.WithContext(ctx).Model(&domain.Overtime{}).Where("id = ?", id).Update("status", status).Error
+	return r.db.WithContext(ctx).Model(&domain.Overtime{}).Where("id_lembur = ?", id).Update("status", status).Error
 }

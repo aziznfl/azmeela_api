@@ -21,21 +21,18 @@ func (r *cashAdvanceRepository) Fetch(ctx context.Context, filter map[string]int
 
 	// Sanitize and builder filters (Senior BE approach)
 	if empID, ok := filter["admin_id"]; ok {
-		query = query.Where("cash_advances.admin_id = ?", empID)
+		query = query.Where("t_kasbon.id_admin = ?", empID)
 	}
 	if status, ok := filter["status"]; ok {
-		query = query.Where("cash_advances.status = ?", status)
-	}
-	if last7, ok := filter["last_7_days"]; ok && last7 == true {
-		query = query.Where("cash_advances.created_at >= CURRENT_DATE - interval '7 days'")
+		query = query.Where("t_kasbon.status = ?", status)
 	}
 	if monthYear, ok := filter["month_year"]; ok {
-		query = query.Where("cash_advances.created_at::text LIKE ?", monthYear)
+		query = query.Where("t_kasbon.tanggal::text LIKE ?", monthYear)
 	}
 
-	err := query.Select("cash_advances.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = cash_advances.admin_id").
-		Order("cash_advances.created_at DESC").
+	err := query.Select("t_kasbon.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_kasbon.id_admin").
+		Order("t_kasbon.tanggal DESC").
 		Find(&results).Error
 
 	return results, err
@@ -44,8 +41,8 @@ func (r *cashAdvanceRepository) Fetch(ctx context.Context, filter map[string]int
 func (r *cashAdvanceRepository) GetByID(ctx context.Context, id int) (*domain.CashAdvance, error) {
 	var ca domain.CashAdvance
 	err := r.db.WithContext(ctx).Model(&domain.CashAdvance{}).
-		Select("cash_advances.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = cash_advances.admin_id").
+		Select("t_kasbon.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_kasbon.id_admin").
 		First(&ca, id).Error
 	if err != nil {
 		return nil, err
@@ -58,7 +55,7 @@ func (r *cashAdvanceRepository) Store(ctx context.Context, ca *domain.CashAdvanc
 }
 
 func (r *cashAdvanceRepository) UpdateStatus(ctx context.Context, id int, status int) error {
-	return r.db.WithContext(ctx).Model(&domain.CashAdvance{}).Where("id = ?", id).Update("status", status).Error
+	return r.db.WithContext(ctx).Model(&domain.CashAdvance{}).Where("id_kasbon = ?", id).Update("status", status).Error
 }
 
 func (r *cashAdvanceRepository) StoreHistory(ctx context.Context, history *domain.CashAdvanceHistory) error {

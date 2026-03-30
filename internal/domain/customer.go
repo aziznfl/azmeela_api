@@ -6,55 +6,52 @@ import (
 )
 
 type CustomerType struct {
-	ID      int    `gorm:"primaryKey;column:id;autoIncrement"`
-	Name    string `gorm:"column:name;type:varchar(100);not null;unique"`
-	Initial string `gorm:"column:initial;type:varchar(1);not null;unique"`
+	ID      int    `gorm:"primaryKey;column:id_customer_type;autoIncrement"`
+	Name    string `gorm:"column:name_customer_type;type:varchar(100);not null"`
+	Initial string `gorm:"column:initial_customer_type;type:varchar(1);not null"`
 }
 
 func (CustomerType) TableName() string {
-	return "customer_types"
+	return "t_customer_type"
 }
 
 type Customer struct {
-	ID               int          `gorm:"primaryKey;column:id;autoIncrement"`
-	CustomerTypeID   int          `gorm:"column:customer_type_id;not null;default:1"`
+	ID               int          `gorm:"primaryKey;column:id_customer;autoIncrement"`
+	CustomerTypeID   int          `gorm:"column:id_customer_type;not null;default:1"`
 	CustomerType     CustomerType `gorm:"foreignKey:CustomerTypeID"`
-	CreatedAt        time.Time    `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
-	FullName         string       `gorm:"column:full_name;type:varchar(100);not null"`
-	PhoneNumber      *string      `gorm:"column:phone_number;type:varchar(16)"`
-	Deposit          float64      `gorm:"column:deposit;not null;default:0"`
-	AdminID          int          `gorm:"column:admin_id;not null;default:1"`
-	MembershipStatus string       `gorm:"column:membership_status;type:membership_status_type;not null;default:'1'"`
+	CreatedAt        time.Time    `gorm:"column:date_sign;not null;default:CURRENT_TIMESTAMP"`
+	FullName         string       `gorm:"column:name_customer;type:varchar(100);not null"`
+	PhoneNumber      *string      `gorm:"column:no_telepon;type:varchar(16)"`
+	Deposit          float64      `gorm:"column:deposito;not null;default:0"`
+	AdminID          int          `gorm:"column:id_admin;not null;default:1"`
+	MembershipStatus string       `gorm:"column:status_keanggotaan;type:text;not null;default:'1'"`
 	Username         *string      `gorm:"column:username;type:varchar(100);unique"`
 	Email            *string      `gorm:"column:email;type:varchar(100)"`
 	Password         *string      `gorm:"column:password;type:varchar(255)"`
 	PasswordHash     *string      `gorm:"column:password_hash;type:varchar(255)"`
-	IsActive         bool         `gorm:"column:is_active;not null;default:true;->:false"`
 	Addresses        []CustomerAddress `gorm:"foreignKey:CustomerID"`
 }
 
 func (Customer) TableName() string {
-	return "customers"
+	return "t_customer"
 }
 
 type CustomerAddress struct {
-	ID            int       `gorm:"primaryKey;column:id;autoIncrement"`
-	CustomerID    int       `gorm:"column:customer_id;not null"`
-	AdminID       *int      `gorm:"column:admin_id"`
-	Country       string    `gorm:"column:country;type:varchar(100);not null"`
-	Province      string    `gorm:"column:province;type:varchar(100);not null"`
-	City          string    `gorm:"column:city;type:varchar(100);not null"`
-	District      string    `gorm:"column:district;type:varchar(100);not null"`
-	SubDistrict   *string   `gorm:"column:sub_district;type:varchar(100)"`
-	StreetAddress string    `gorm:"column:street_address;type:varchar(200);not null"`
-	PostalCode    *string   `gorm:"column:postal_code;type:varchar(11)"`
-	SicepatID     *int      `gorm:"column:sicepat_id"`
-	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP"`
+	ID            int       `gorm:"primaryKey;column:id_customer_alamat;autoIncrement"`
+	CustomerID    int       `gorm:"column:id_customer;not null"`
+	AdminID       *int      `gorm:"column:id_admin"`
+	Country       string    `gorm:"column:negara;type:varchar(100);not null"`
+	Province      string    `gorm:"column:provinsi;type:varchar(100);not null"`
+	City          string    `gorm:"column:kota;type:varchar(100);not null"`
+	District      string    `gorm:"column:kecamatan;type:varchar(100);not null"`
+	SubDistrict   *string   `gorm:"column:kelurahan;type:varchar(100)"`
+	StreetAddress string    `gorm:"column:jalan;type:varchar(200);not null"`
+	PostalCode    *string   `gorm:"column:kode_pos;type:varchar(11)"`
+	SicepatID     *int      `gorm:"column:id_sicepat"`
 }
 
 func (CustomerAddress) TableName() string {
-	return "customer_addresses"
+	return "t_customer_alamat"
 }
 
 type CustomerAddressRequest struct {

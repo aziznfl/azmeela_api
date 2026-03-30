@@ -27,39 +27,35 @@ func (r *reportRepository) GetMonthlySummary(ctx context.Context, employeeID *in
 	db := r.db.WithContext(ctx)
 
 	// Senior BE Optimization: Range queries are much faster than LIKE on indexed date columns
-	buildQuery := func(table string, model interface{}, dateColumn string) *gorm.DB {
+	buildQuery := func(model interface{}, dateColumn string) *gorm.DB {
 		q := db.Model(model).Where(dateColumn+" >= ? AND "+dateColumn+" < ?", startDate, endDate)
 		if employeeID != nil {
-			empColumn := "admin_id"
-			if table == "presences" {
-				empColumn = "employee_id"
-			}
-			q = q.Where(empColumn+" = ?", *employeeID)
+			q = q.Where("id_admin = ?", *employeeID)
 		}
 		return q
 	}
 
 	// Count attendances
 	var count int64
-	buildQuery("presences", &domain.Attendance{}, "presence_date").Count(&count)
+	buildQuery(&domain.Attendance{}, "tanggal").Count(&count)
 	summary.TotalAttendances = int(count)
 
 	// Count overtimes
-	buildQuery("overtimes", &domain.Overtime{}, "overtime_date").Where("status = 1").Count(&count)
+	buildQuery(&domain.Overtime{}, "tanggal").Where("status = 1").Count(&count)
 	summary.TotalOvertimes = int(count)
 
-	// Count leaves (cuti), type = 0
-	buildQuery("leaves", &domain.Leave{}, "leave_date").Where("status = 1 AND type = 0").Count(&count)
+	// Count leaves (cuti), grouping = 0
+	buildQuery(&domain.Leave{}, "tanggal").Where("status = 1 AND grouping = 0").Count(&count)
 	summary.TotalLeaves = int(count)
 
-	// Count sick days (sakit), type = 1
+	// Count sick days (sakit), grouping = 1
 	var sickCount int64
-	buildQuery("leaves", &domain.Leave{}, "leave_date").Where("status = 1 AND type = 1").Count(&sickCount)
+	buildQuery(&domain.Leave{}, "tanggal").Where("status = 1 AND grouping = 1").Count(&sickCount)
 	summary.TotalSickDays = int(sickCount)
 
 	// Calculate total debt for the month
 	var totalDebt int
-	buildQuery("cash_advances", &domain.CashAdvance{}, "created_at").Where("status = 1").Select("COALESCE(SUM(jumlah), 0)").Scan(&totalDebt)
+	buildQuery(&domain.CashAdvance{}, "tanggal").Where("status = 1").Select("COALESCE(SUM(jumlah), 0)").Scan(&totalDebt)
 	summary.TotalDebts = totalDebt
 
 	return &summary, nil
@@ -73,14 +69,14 @@ func (r *reportRepository) GetDashboardStats(ctx context.Context, employeeID *in
 
 	// Total Karyawan Aktif
 	var totalEmployees int64
-	db.Model(&domain.Employee{}).Where("admin_type_id != 1 AND active = true").Count(&totalEmployees)
+	db.Model(&domain.Employee{}).Where("id_admin_type != 1 AND status_admin = 1").Count(&totalEmployees)
 	stats["total_employees"] = totalEmployees
 
 	// Presence Hari Ini
 	var presentCount int64
-	qPresent := db.Model(&domain.Attendance{}).Where("presence_date = ?", todayDate)
+	qPresent := db.Model(&domain.Attendance{}).Where("tanggal = ?", todayDate)
 	if employeeID != nil {
-		qPresent = qPresent.Where("employee_id = ?", *employeeID)
+		qPresent = qPresent.Where("id_admin = ?", *employeeID)
 	}
 	qPresent.Count(&presentCount)
 
@@ -97,16 +93,12 @@ func (r *reportRepository) GetDashboardStats(ctx context.Context, employeeID *in
 	// Sedang Cuti (Hari Ini)
 	var leaveCount int64
 
-	// Using raw SQL fragment for the duration calculation
-	condition := "(leave_date + (durations - 1 || ' days')::interval) >= ?"
-
 	qLeaves := db.Model(&domain.Leave{}).
-		Where("leave_date <= ?", todayDate).
-		Where(condition, todayDate).
-		Where("status = 1 AND type = 0")
+		Where("tanggal = ?", todayDate).
+		Where("status = 1 AND grouping = 0")
 
 	if employeeID != nil {
-		qLeaves = qLeaves.Where("admin_id = ?", *employeeID)
+		qLeaves = qLeaves.Where("id_admin = ?", *employeeID)
 	}
 
 	qLeaves.Count(&leaveCount)
@@ -145,15 +137,15 @@ func (r *reportRepository) GetRecentActivities(ctx context.Context, employeeID *
 	var attendances []domain.Attendance
 	qAttendances := r.db.WithContext(ctx).
 		Model(&domain.Attendance{}).
-		Select("presences.*, admins.name as employee_name").
-		Joins("JOIN admins ON admins.id = presences.employee_id").
-		Where("presence_date >= ?", sevenDaysAgo)
+		Select("t_presensi.*, t_admin.nama_admin as employee_name").
+		Joins("JOIN t_admin ON t_admin.id_admin = t_presensi.id_admin").
+		Where("t_presensi.tanggal >= ?", sevenDaysAgo)
 
 	if employeeID != nil {
-		qAttendances = qAttendances.Where("employee_id = ?", *employeeID)
+		qAttendances = qAttendances.Where("t_presensi.id_admin = ?", *employeeID)
 	}
 
-	qAttendances.Order("presence_date DESC, start_time DESC").Limit(maxRecent).Find(&attendances)
+	qAttendances.Order("t_presensi.tanggal DESC, t_presensi.jam_masuk DESC").Limit(maxRecent).Find(&attendances)
 
 	for _, a := range attendances {
 		// TimeIn/TimeOut might be "HH:mm:ss" or "HH:mm"
@@ -198,15 +190,15 @@ func (r *reportRepository) GetRecentActivities(ctx context.Context, employeeID *
 	var leaves []domain.Leave
 	qLeaves := r.db.WithContext(ctx).
 		Model(&domain.Leave{}).
-		Select("leaves.*, admins.name as employee_name").
-		Joins("JOIN admins ON admins.id = leaves.admin_id").
-		Where("leaves.created_at >= ?", sevenDaysAgo)
+		Select("t_cuti.*, t_admin.nama_admin as employee_name").
+		Joins("JOIN t_admin ON t_admin.id_admin = t_cuti.id_admin").
+		Where("t_cuti.tanggal >= ?", sevenDaysAgo)
 
 	if employeeID != nil {
-		qLeaves = qLeaves.Where("admin_id = ?", *employeeID)
+		qLeaves = qLeaves.Where("t_cuti.id_admin = ?", *employeeID)
 	}
 
-	qLeaves.Order("created_at DESC").Limit(maxRecent).Find(&leaves)
+	qLeaves.Order("t_cuti.tanggal DESC").Limit(maxRecent).Find(&leaves)
 
 	for _, l := range leaves {
 		typeStr := "Cuti"
@@ -225,7 +217,7 @@ func (r *reportRepository) GetRecentActivities(ctx context.Context, employeeID *
 			EmployeeName: l.EmployeeName,
 			Type:         "leave",
 			Action:       "Pengajuan " + typeStr,
-			Date:         l.CreatedAt.UTC(),
+			Date:         l.LeaveDate.UTC(),
 			Status:       statusStr,
 		})
 	}
@@ -234,15 +226,15 @@ func (r *reportRepository) GetRecentActivities(ctx context.Context, employeeID *
 	var overtimes []domain.Overtime
 	qOvertimes := r.db.WithContext(ctx).
 		Model(&domain.Overtime{}).
-		Select("overtimes.*, admins.name as employee_name, overtimes.created_at").
-		Joins("JOIN admins ON admins.id = overtimes.admin_id").
-		Where("overtimes.created_at >= ?", sevenDaysAgo)
+		Select("t_lembur.*, t_admin.nama_admin as employee_name").
+		Joins("JOIN t_admin ON t_admin.id_admin = t_lembur.id_admin").
+		Where("t_lembur.tanggal >= ?", sevenDaysAgo)
 
 	if employeeID != nil {
-		qOvertimes = qOvertimes.Where("admin_id = ?", *employeeID)
+		qOvertimes = qOvertimes.Where("t_lembur.id_admin = ?", *employeeID)
 	}
 
-	qOvertimes.Order("overtimes.created_at DESC").Limit(maxRecent).Find(&overtimes)
+	qOvertimes.Order("t_lembur.tanggal DESC").Limit(maxRecent).Find(&overtimes)
 
 	for _, o := range overtimes {
 		statusStr := "Pending"
@@ -266,15 +258,15 @@ func (r *reportRepository) GetRecentActivities(ctx context.Context, employeeID *
 	var cashAdvances []domain.CashAdvance
 	qCashAdvances := r.db.WithContext(ctx).
 		Model(&domain.CashAdvance{}).
-		Select("cash_advances.*, admins.name as employee_name").
-		Joins("JOIN admins ON admins.id = cash_advances.admin_id").
-		Where("cash_advances.created_at >= ?", sevenDaysAgo)
+		Select("t_kasbon.*, t_admin.nama_admin as employee_name").
+		Joins("JOIN t_admin ON t_admin.id_admin = t_kasbon.id_admin").
+		Where("t_kasbon.tanggal >= ?", sevenDaysAgo)
 
 	if employeeID != nil {
-		qCashAdvances = qCashAdvances.Where("admin_id = ?", *employeeID)
+		qCashAdvances = qCashAdvances.Where("t_kasbon.id_admin = ?", *employeeID)
 	}
 
-	qCashAdvances.Order("created_at DESC").Limit(maxRecent).Find(&cashAdvances)
+	qCashAdvances.Order("t_kasbon.tanggal DESC").Limit(maxRecent).Find(&cashAdvances)
 
 	for _, ca := range cashAdvances {
 		statusStr := "Pending"
@@ -326,14 +318,14 @@ func (r *reportRepository) GetCommerceStats(ctx context.Context, filterType stri
 		case "monthly":
 			startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 			endDate := startDate.AddDate(0, 1, 0)
-			return base.Where("created_at >= ? AND created_at < ?", startDate, endDate)
+			return base.Where("tgl_transaksi >= ? AND tgl_transaksi < ?", startDate, endDate)
 		case "yearly":
 			startDate := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
 			endDate := startDate.AddDate(1, 0, 0)
-			return base.Where("created_at >= ? AND created_at < ?", startDate, endDate)
+			return base.Where("tgl_transaksi >= ? AND tgl_transaksi < ?", startDate, endDate)
 		default: // last-7-days
 			sevenDaysAgo := now.AddDate(0, 0, -7)
-			return base.Where("created_at >= ?", sevenDaysAgo)
+			return base.Where("tgl_transaksi >= ?", sevenDaysAgo)
 		}
 	}
 
@@ -347,10 +339,10 @@ func (r *reportRepository) GetCommerceStats(ctx context.Context, filterType stri
 
 	getQuery().Select("COALESCE(SUM(total), 0)").Scan(&totalRevenue)
 	getQuery().Count(&totalOrders)
-	getQuery().Where("status_id = 1").Count(&pendingOrders)
-	getQuery().Where("status_id >= 4").Count(&completedOrders)
-	getQuery().Select("COALESCE(SUM(shipping_cost), 0)").Scan(&totalShipping)
-	getQuery().Select("COALESCE(SUM(discount), 0)").Scan(&totalDiscount)
+	getQuery().Where("transaksi_status = 1").Count(&pendingOrders)
+	getQuery().Where("transaksi_status >= 104").Count(&completedOrders)
+	getQuery().Select("COALESCE(SUM(ongkir), 0)").Scan(&totalShipping)
+	getQuery().Select("COALESCE(SUM(diskon), 0)").Scan(&totalDiscount)
 
 	stats.TotalRevenue = int(totalRevenue)
 	stats.TotalOrders = int(totalOrders)
@@ -367,9 +359,9 @@ func (r *reportRepository) GetCommerceStats(ctx context.Context, filterType stri
 			startDate := time.Date(year, time.Month(m), 1, 0, 0, 0, 0, time.UTC)
 			endDate := startDate.AddDate(0, 1, 0)
 			var monthRev int64
-			r.db.WithContext(ctx).Table("transactions").
+			r.db.WithContext(ctx).Table("t_transaksi").
 				Select("COALESCE(SUM(total), 0)").
-				Where("created_at >= ? AND created_at < ?", startDate, endDate).
+				Where("tgl_transaksi >= ? AND tgl_transaksi < ?", startDate, endDate).
 				Scan(&monthRev)
 
 			graphPoints = append(graphPoints, domain.GraphDataPoint{
@@ -383,9 +375,9 @@ func (r *reportRepository) GetCommerceStats(ctx context.Context, filterType stri
 			dayStart := time.Date(year, time.Month(month), d, 0, 0, 0, 0, time.UTC)
 			dayEnd := dayStart.AddDate(0, 0, 1)
 			var dayRev int64
-			r.db.WithContext(ctx).Table("transactions").
+			r.db.WithContext(ctx).Table("t_transaksi").
 				Select("COALESCE(SUM(total), 0)").
-				Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+				Where("tgl_transaksi >= ? AND tgl_transaksi < ?", dayStart, dayEnd).
 				Scan(&dayRev)
 
 			graphPoints = append(graphPoints, domain.GraphDataPoint{
@@ -399,9 +391,9 @@ func (r *reportRepository) GetCommerceStats(ctx context.Context, filterType stri
 			dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.UTC)
 			dayEnd := dayStart.AddDate(0, 0, 1)
 			var dayRev int64
-			r.db.WithContext(ctx).Table("transactions").
+			r.db.WithContext(ctx).Table("t_transaksi").
 				Select("COALESCE(SUM(total), 0)").
-				Where("created_at >= ? AND created_at < ?", dayStart, dayEnd).
+				Where("tgl_transaksi >= ? AND tgl_transaksi < ?", dayStart, dayEnd).
 				Scan(&dayRev)
 
 			graphPoints = append(graphPoints, domain.GraphDataPoint{

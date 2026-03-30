@@ -41,3 +41,7 @@ server.log
 # Go generate
 # (usually included unless you want to skip generated files)
 # docs/
+
+bin/
+docker*
+pkg/database/postgres.go

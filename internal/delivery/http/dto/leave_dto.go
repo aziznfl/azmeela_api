@@ -43,8 +43,6 @@ func ToLeaveResponse(l *domain.Leave) *LeaveResponse {
 		Durations:    l.Durations,
 		Status:       l.Status,
 		Description:  l.Description,
-		CreatedAt:    l.CreatedAt,
-		UpdatedAt:    l.UpdatedAt,
 	}
 }
 

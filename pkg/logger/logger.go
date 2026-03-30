@@ -1,23 +1,30 @@
 package logger
 
 import (
+	"log/slog"
 	"os"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-var Log *zap.Logger
+type LoggerWrapper struct {
+	*slog.Logger
+}
+
+var Log *LoggerWrapper
 
 func InitLogger() {
-	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	Log = &LoggerWrapper{slog.New(handler)}
+}
 
-	consoleEncoder := zapcore.NewConsoleEncoder(config)
+func (l *LoggerWrapper) Fatal(msg string, args ...any) {
+	l.Error(msg, args...)
+	os.Exit(1)
+}
 
-	core := zapcore.NewTee(
-		zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
-	)
-
-	Log = zap.New(core, zap.AddCaller())
+func (l *LoggerWrapper) Sync() error {
+	// slog doesn't require sync like Zap
+	return nil
 }

@@ -21,28 +21,24 @@ func (r *leaveRepository) Fetch(ctx context.Context, filter map[string]interface
 
 	// Sanitize and explicitly builder filters (Senior BE approach)
 	if empID, ok := filter["admin_id"]; ok {
-		query = query.Where("leaves.admin_id = ?", empID)
+		query = query.Where("t_cuti.id_admin = ?", empID)
 	}
 	if types, ok := filter["type"]; ok {
-		query = query.Where("leaves.type = ?", types)
+		query = query.Where("t_cuti.grouping = ?", types)
 	}
 	if status, ok := filter["status"]; ok {
-		query = query.Where("leaves.status = ?", status)
+		query = query.Where("t_cuti.status = ?", status)
 	}
 	if upcoming, ok := filter["upcoming"]; ok && upcoming == true {
-		query = query.Where("leaves.leave_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 days') AND leaves.status = 1")
-	}
-	if last7, ok := filter["last_7_days"]; ok && last7 == true {
-		query = query.Where("leaves.created_at >= CURRENT_DATE - interval '7 days'")
+		query = query.Where("t_cuti.tanggal BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 days') AND t_cuti.status = 1")
 	}
 	if monthYear, ok := filter["month_year"]; ok {
-		// Optimized date range query would be better, but keep current logic for now with safe execution
-		query = query.Where("leaves.leave_date::text LIKE ?", monthYear)
+		query = query.Where("t_cuti.tanggal::text LIKE ?", monthYear)
 	}
 
-	err := query.Select("leaves.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = leaves.admin_id").
-		Order("leaves.leave_date DESC").
+	err := query.Select("t_cuti.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_cuti.id_admin").
+		Order("t_cuti.tanggal DESC").
 		Find(&leaves).Error
 
 	return leaves, err
@@ -51,8 +47,8 @@ func (r *leaveRepository) Fetch(ctx context.Context, filter map[string]interface
 func (r *leaveRepository) GetByID(ctx context.Context, id int) (*domain.Leave, error) {
 	var leave domain.Leave
 	err := r.db.WithContext(ctx).Model(&domain.Leave{}).
-		Select("leaves.*, admins.name as employee_name").
-		Joins("LEFT JOIN admins ON admins.id = leaves.admin_id").
+		Select("t_cuti.*, t_admin.nama_admin as employee_name").
+		Joins("LEFT JOIN t_admin ON t_admin.id_admin = t_cuti.id_admin").
 		First(&leave, id).Error
 	if err != nil {
 		return nil, err
@@ -65,5 +61,5 @@ func (r *leaveRepository) Store(ctx context.Context, leave *domain.Leave) error 
 }
 
 func (r *leaveRepository) UpdateStatus(ctx context.Context, id int, status int) error {
-	return r.db.WithContext(ctx).Model(&domain.Leave{}).Where("id = ?", id).Update("status", status).Error
+	return r.db.WithContext(ctx).Model(&domain.Leave{}).Where("id_cuti = ?", id).Update("status", status).Error
 }

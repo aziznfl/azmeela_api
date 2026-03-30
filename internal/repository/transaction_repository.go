@@ -24,14 +24,18 @@ func (r *transactionRepository) Fetch(ctx context.Context, filter map[string]int
 	for k, v := range filter {
 		if k == "search" {
 			searchVal := "%" + v.(string) + "%"
-			query = query.Joins("LEFT JOIN customers ON customers.id = transactions.customer_id").
-				Where("LOWER(transactions.transaction_code) LIKE LOWER(?) OR LOWER(customers.full_name) LIKE LOWER(?)", searchVal, searchVal)
+			query = query.Joins("LEFT JOIN t_customer ON t_customer.id_customer = t_transaksi.id_customer").
+				Where("LOWER(t_transaksi.kode_transaksi) LIKE LOWER(?) OR LOWER(t_customer.name_customer) LIKE LOWER(?)", searchVal, searchVal)
+		} else if k == "status_id" {
+			query = query.Where("t_transaksi.transaksi_status = ?", v)
+		} else if k == "customer_id" {
+			query = query.Where("t_transaksi.id_customer = ?", v)
 		} else {
-			query = query.Where("transactions."+k+" = ?", v)
+			query = query.Where("t_transaksi."+k+" = ?", v)
 		}
 	}
 
-	query = query.Order("transactions.created_at DESC")
+	query = query.Order("t_transaksi.tgl_cur_time DESC")
 
 	err := query.Count(&total).Error
 	if err != nil {
@@ -43,7 +47,7 @@ func (r *transactionRepository) Fetch(ctx context.Context, filter map[string]int
 		Joins("Customer").
 		Joins("Customer.CustomerType").
 		Joins("Status").
-		Offset(offset).Limit(limit).Order("transactions.id DESC").
+		Offset(offset).Limit(limit).Order("t_transaksi.id_transaksi DESC").
 		Find(&transactions).Error
 
 	return transactions, total, err
@@ -81,7 +85,7 @@ func (r *transactionRepository) Store(ctx context.Context, tx *domain.Transactio
 func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transaction) error {
 	return r.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
 		// 1. Manual wipe of existing details
-		if err := db.Where("transaction_id = ?", tx.ID).Delete(&domain.TransactionDetail{}).Error; err != nil {
+		if err := db.Where("id_transaksi = ?", tx.ID).Delete(&domain.TransactionDetail{}).Error; err != nil {
 			return err
 		}
 
@@ -104,26 +108,26 @@ func (r *transactionRepository) Delete(ctx context.Context, id int) error {
 
 func (r *transactionRepository) FetchStatuses(ctx context.Context) ([]domain.TransactionStatus, error) {
 	var statuses []domain.TransactionStatus
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&statuses).Error
+	err := r.db.WithContext(ctx).Order("id_transaksi_status ASC").Find(&statuses).Error
 	return statuses, err
 }
 func (r *transactionRepository) FetchLogs(ctx context.Context, id int) ([]domain.TransactionLog, error) {
 	var logs []domain.TransactionLog
 	err := r.db.WithContext(ctx).
-		Where("transaction_id = ?", id).
+		Where("id_transaksi = ?", id).
 		Joins("Admin").
 		Joins("OldStatus").
 		Joins("NewStatus").
-		Order("transaction_logs.created_at DESC").
+		Order("t_transaksi_log.tgl_transkasi_log DESC").
 		Find(&logs).Error
 	return logs, err
 }
 func (r *transactionRepository) GetLastTransactionCode(ctx context.Context, prefix string) (string, error) {
 	var lastCode string
-	err := r.db.WithContext(ctx).Table("transactions").
-		Where("transaction_code LIKE ?", prefix+"%").
-		Order("transaction_code DESC").
-		Select("transaction_code").
+	err := r.db.WithContext(ctx).Table("t_transaksi").
+		Where("kode_transaksi LIKE ?", prefix+"%").
+		Order("kode_transaksi DESC").
+		Select("kode_transaksi").
 		Limit(1).
 		Row().Scan(&lastCode)
 

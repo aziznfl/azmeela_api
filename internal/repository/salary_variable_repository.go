@@ -17,7 +17,7 @@ func NewSalaryVariableRepository(db *gorm.DB) domain.SalaryVariableRepository {
 
 func (r *salaryVariableRepository) Fetch(ctx context.Context) ([]domain.SalaryVariable, error) {
 	var variables []domain.SalaryVariable
-	err := r.db.WithContext(ctx).Order("type ASC, name ASC").Find(&variables).Error
+	err := r.db.WithContext(ctx).Order("tipe_variable ASC, nama_variable ASC").Find(&variables).Error
 	if err != nil {
 		return nil, err
 	}

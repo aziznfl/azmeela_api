@@ -28,12 +28,17 @@ func (u *holidayUsecase) Create(ctx context.Context, req *domain.HolidayRequest)
 		return nil, errors.New("invalid holiday_date format, expected YYYY-MM-DD")
 	}
 
+	isRecurringInt := 0
+	if req.IsRecurring {
+		isRecurringInt = 1
+	}
+
 	hol := &domain.Holiday{
 		HolidayDate: parsedDate,
 		Month:       int(parsedDate.Month()),
 		Day:         int(parsedDate.Day()),
 		Description: req.Description,
-		IsRecurring: req.IsRecurring,
+		IsRecurring: isRecurringInt,
 	}
 
 	err = u.holidayRepo.Store(ctx, hol)
@@ -53,11 +58,16 @@ func (u *holidayUsecase) Update(ctx context.Context, id int, req *domain.Holiday
 		return nil, errors.New("invalid holiday_date format, expected YYYY-MM-DD")
 	}
 
+	isRecurringInt := 0
+	if req.IsRecurring {
+		isRecurringInt = 1
+	}
+
 	hol.HolidayDate = parsedDate
 	hol.Month = int(parsedDate.Month())
 	hol.Day = int(parsedDate.Day())
 	hol.Description = req.Description
-	hol.IsRecurring = req.IsRecurring
+	hol.IsRecurring = isRecurringInt
 
 	err = u.holidayRepo.Update(ctx, hol)
 	if err != nil {

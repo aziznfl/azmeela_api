@@ -2,39 +2,51 @@ package config
 
 import (
 	"log"
-	"github.com/spf13/viper"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	ServerPort      string `mapstructure:"SERVER_PORT"`
-	DBHost          string `mapstructure:"DB_HOST"`
-	DBPort          string `mapstructure:"DB_PORT"`
-	DBUser          string `mapstructure:"DB_USER"`
-	DBPass          string `mapstructure:"DB_PASS"`
-	DBName          string `mapstructure:"DB_NAME"`
-	RedisAddr       string `mapstructure:"REDIS_ADDR"`
-	RedisPass       string `mapstructure:"REDIS_PASS"`
-	JWTSecret       string `mapstructure:"JWT_SECRET"`
-	GinMode         string `mapstructure:"GIN_MODE"`
+	ServerPort string
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPass     string
+	DBName     string
+	RedisAddr  string
+	RedisPass  string
+	JWTSecret  string
+	GinMode    string
+}
+
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
 }
 
 func LoadConfig(path string) (*Config, error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName(".env")
-	viper.SetConfigType("env")
+	// Try loading from .env file, but don't fail if it's missing
+	_ = godotenv.Load(path + "/.env")
 
-	viper.AutomaticEnv()
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Println("No .env file found, using OS env variables")
+	config := &Config{
+		ServerPort: getEnv("SERVER_PORT", "8080"),
+		DBHost:     getEnv("DB_HOST", "localhost"),
+		DBPort:     getEnv("DB_PORT", "5432"),
+		DBUser:     getEnv("DB_USER", "postgres"),
+		DBPass:     getEnv("DB_PASS", ""),
+		DBName:     getEnv("DB_NAME", ""),
+		RedisAddr:  getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPass:  getEnv("REDIS_PASS", ""),
+		JWTSecret:  getEnv("JWT_SECRET", ""),
+		GinMode:    getEnv("GIN_MODE", "debug"),
 	}
 
-	var config Config
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return nil, err
+	if config.JWTSecret == "" {
+		log.Println("Warning: JWT_SECRET is not set")
 	}
 
-	return &config, nil
+	return config, nil
 }

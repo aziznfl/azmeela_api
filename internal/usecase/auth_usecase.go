@@ -36,8 +36,7 @@ func (u *authUsecase) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 		return nil, errors.New("invalid username or password")
 	}
 
-	// Ensure employee status is active (1)
-	if !emp.Active {
+	if emp.Active == 0 {
 		return nil, errors.New("account is inactive")
 	}
 
@@ -62,8 +61,7 @@ func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string) (*d
 		return nil, errors.New("user not found")
 	}
 
-	// Ensure active
-	if !emp.Active {
+	if emp.Active == 0 {
 		return nil, errors.New("account is inactive")
 	}
 

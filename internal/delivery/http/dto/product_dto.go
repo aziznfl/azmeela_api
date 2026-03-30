@@ -87,8 +87,6 @@ func ToProductTypeResponse(t *domain.ProductType) *ProductTypeResponse {
 		ID:        t.ID,
 		Name:      t.Name,
 		WebStatus: t.WebStatus,
-		CreatedAt: t.CreatedAt,
-		UpdatedAt: t.UpdatedAt,
 	}
 }
 
@@ -131,8 +129,6 @@ func ToProductCodeResponse(c *domain.ProductCode) *ProductCodeResponse {
 		CodeStatus:    c.CodeStatus,
 		Description:   c.Description,
 		Information:   c.Information,
-		CreatedAt:     c.CreatedAt,
-		UpdatedAt:     c.UpdatedAt,
 	}
 
 	if c.Type != nil {
@@ -241,8 +237,6 @@ func ToProductResponse(p *domain.Product) *ProductResponse {
 		WebStatus:     p.WebStatus,
 		SEOLink:       p.SEOLink,
 		Views:         p.Views,
-		CreatedAt:     p.CreatedAt,
-		UpdatedAt:     p.UpdatedAt,
 	}
 
 	if p.ProductCode != nil {

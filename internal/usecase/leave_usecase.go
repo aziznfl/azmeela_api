@@ -35,8 +35,6 @@ func (u *leaveUsecase) Fetch(ctx context.Context, filter map[string]interface{})
 			Durations:    l.Durations,
 			Status:       l.Status,
 			Description:  l.Description,
-			CreatedAt:    l.CreatedAt,
-			UpdatedAt:    l.UpdatedAt,
 		})
 	}
 	return response, nil

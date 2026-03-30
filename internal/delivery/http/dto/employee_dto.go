@@ -38,8 +38,6 @@ type EmployeeRequest struct {
 type AdminTypeResponse struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func ToEmployeeResponse(e *domain.Employee) *EmployeeResponse {
@@ -52,7 +50,7 @@ func ToEmployeeResponse(e *domain.Employee) *EmployeeResponse {
 		TypeID:        e.TypeID,
 		Username:      e.Username,
 		Name:          e.Name,
-		Status:        e.Active,
+		Status:        e.Active == 1,
 		Bio:           e.Bio,
 		BaseSalary:    e.BaseSalary,
 		ContractStart: e.ContractStart,
@@ -83,8 +81,6 @@ func ToAdminTypeResponse(at *domain.AdminType) *AdminTypeResponse {
 	return &AdminTypeResponse{
 		ID:        at.ID,
 		Name:      at.Name,
-		CreatedAt: at.CreatedAt,
-		UpdatedAt: at.UpdatedAt,
 	}
 }
 
@@ -96,12 +92,16 @@ func ToAdminTypeListResponse(types []domain.AdminType) []*AdminTypeResponse {
 	return resps
 }
 func (r *EmployeeRequest) ToDomain() *domain.Employee {
+	active := 0
+	if r.Active {
+		active = 1
+	}
 	return &domain.Employee{
 		TypeID:        r.TypeID,
 		Username:      r.Username,
 		Password:      r.Password,
 		Name:          r.Name,
-		Active:        r.Active,
+		Active:        active,
 		Bio:           r.Bio,
 		BaseSalary:    r.BaseSalary,
 		ContractStart: r.ContractStart,

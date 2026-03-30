@@ -114,7 +114,7 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 		TransactionCode: t.TransactionCode,
 		Total:           t.Total,
 		PaymentCode:     t.PaymentCode,
-		IsReminded:      t.IsReminded,
+		IsReminded:      t.IsReminded == 1,
 		TransferDate:    t.TransferDate,
 		ShippingDate:    t.ShippingDate,
 		CreatedAt:       t.CreatedAt,
@@ -257,6 +257,11 @@ func ToTransactionStatusListResponse(statuses []domain.TransactionStatus) []*Tra
 }
 
 func (r *TransactionRequest) ToDomain() *domain.TransactionRequest {
+	isRemindedInt := 0
+	if r.IsReminded {
+		isRemindedInt = 1
+	}
+
 	details := make([]domain.TransactionDetailRequest, len(r.Details))
 	for i, d := range r.Details {
 		details[i] = domain.TransactionDetailRequest{
@@ -282,7 +287,7 @@ func (r *TransactionRequest) ToDomain() *domain.TransactionRequest {
 		Discount:        r.Discount,
 		DiscountNote:    r.DiscountNote,
 		DiscountType:    r.DiscountType,
-		IsReminded:      r.IsReminded,
+		IsReminded:      isRemindedInt,
 		Details:         details,
 	}
 }

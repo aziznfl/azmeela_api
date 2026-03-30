@@ -20,7 +20,7 @@ func (r *employeeRepository) Fetch(ctx context.Context) ([]domain.Employee, erro
 	var employees []domain.Employee
 	err := r.db.WithContext(ctx).
 		Joins("AdminType").
-		Order("admins.active DESC").
+		Order("t_admin.status_admin DESC").
 		Find(&employees).Error
 	if err != nil {
 		return nil, err
