@@ -18,7 +18,7 @@ func NewPostgresConn(cfg *config.Config) (*gorm.DB, error) {
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBName)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
