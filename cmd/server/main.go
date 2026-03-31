@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/gin-gonic/gin"
 
@@ -37,6 +38,10 @@ func main() {
 		log.Fatalf("Cannot load config: %v", err)
 	}
 
+	// Initialize Logger
+	logger.InitLogger()
+	logger.Log.Info("Starting Azmeela Internal API")
+
 	// Set Timezone to Asia/Jakarta
 	loc, err := time.LoadLocation("Asia/Jakarta")
 	if err != nil {
@@ -44,10 +49,6 @@ func main() {
 	} else {
 		time.Local = loc
 	}
-
-	// Initialize Logger
-	logger.InitLogger()
-	logger.Log.Info("Starting Azmeela Internal API")
 
 	// Initialize Postgres Database Connection
 	db, err := database.NewPostgresConn(cfg)
