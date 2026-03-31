@@ -147,12 +147,12 @@ func (r *productRepository) UpdateStock(ctx context.Context, id int, quantity in
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Get current product_id from the product_price
 		var pp domain.ProductPrice
-		if err := tx.Select("product_id").First(&pp, id).Error; err != nil {
+		if err := tx.Select("id_product").First(&pp, id).Error; err != nil {
 			return err
 		}
 
 		// 1. Update stock in product_prices
-		if err := tx.Model(&domain.ProductPrice{}).Where("id = ?", id).Update("stock", gorm.Expr("stock + ?", quantity)).Error; err != nil {
+		if err := tx.Model(&domain.ProductPrice{}).Where("id_product_price = ?", id).Update("stock", gorm.Expr("stock + ?", quantity)).Error; err != nil {
 			return err
 		}
 
@@ -177,8 +177,8 @@ func (r *productRepository) GetStockLogs(ctx context.Context, productPriceID int
 		Joins("Admin").
 		Joins("ProductPrice").
 		Joins("ProductPrice.Size").
-		Where("id_product_price = ?", productPriceID).
-		Order("date_input_product DESC").Find(&logs).Error
+		Where("t_product_input_stock.id_product_price = ?", productPriceID).
+		Order("t_product_input_stock.date_input_product DESC").Find(&logs).Error
 	return logs, err
 }
 
