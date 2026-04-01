@@ -117,7 +117,7 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 		IsReminded:      t.IsReminded == 1,
 		TransferDate:    t.TransferDate,
 		ShippingDate:    t.ShippingDate,
-		CreatedAt:       t.CreatedAt,
+		CreatedAt:       t.TransactionDate,
 	}
 
 	if t.Customer != nil {

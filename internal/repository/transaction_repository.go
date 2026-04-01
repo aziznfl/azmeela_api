@@ -35,7 +35,7 @@ func (r *transactionRepository) Fetch(ctx context.Context, filter map[string]int
 		}
 	}
 
-	query = query.Order("t_transaksi.tgl_cur_time DESC")
+	query = query.Order("t_transaksi.tgl_transaksi DESC")
 
 	err := query.Count(&total).Error
 	if err != nil {
@@ -96,7 +96,7 @@ func (r *transactionRepository) Update(ctx context.Context, tx *domain.Transacti
 			}
 		}
 
-		// 3. Save the transaction main record, omitting "Details" to prevent GORM 
+		// 3. Save the transaction main record, omitting "Details" to prevent GORM
 		// from trying to "link/unlink" associations which triggers the NOT NULL error.
 		return db.Omit("Details").Save(tx).Error
 	})
