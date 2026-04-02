@@ -45,3 +45,4 @@ server.log
 bin/
 docker*
 pkg/database/postgres.go
+firebase-auth.json

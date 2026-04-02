@@ -158,9 +158,11 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 		resp.Discount.DiscountNote = *t.DiscountNote
 	}
 
+	subtotal := 0
 	if len(t.Details) > 0 {
 		resp.Details = make([]TransactionDetailResponse, len(t.Details))
 		for i, d := range t.Details {
+			itemTotal := d.Quantity * d.Price
 			detail := TransactionDetailResponse{
 				ID:             d.ID,
 				ProductPriceID: d.ProductPriceID,
@@ -168,7 +170,7 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 				ProductID:      d.ProductID,
 				Quantity:       d.Quantity,
 				Price:          d.Price,
-				TotalPrice:     d.Quantity * d.Price,
+				TotalPrice:     itemTotal,
 			}
 			if d.ProductPrice != nil {
 				if d.ProductPrice.Product != nil {
@@ -187,15 +189,12 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 				}
 			}
 			resp.Details[i] = detail
+			subtotal += itemTotal
 		}
 	}
 
-	discountValue := t.Discount
-	if t.DiscountType == 1 { // Percentage
-		discountValue = (t.Total * t.Discount) / 100
-	}
-
-	resp.TotalPrice = t.Total + t.ShippingCost + t.PaymentCode - discountValue
+	resp.Total = subtotal
+	resp.TotalPrice = t.Total
 
 	return resp
 }
