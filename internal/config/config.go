@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -18,10 +19,21 @@ type Config struct {
 	RedisPass  string
 	JWTSecret  string
 	GinMode    string
+	DBMaxIdleConns int
+	DBMaxOpenConns int
+	DBMaxLifetime  int // in minutes
 }
 
 func getEnv(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	valueStr := getEnv(key, "")
+	if value, err := strconv.Atoi(valueStr); err == nil {
 		return value
 	}
 	return defaultValue
@@ -42,6 +54,9 @@ func LoadConfig(path string) (*Config, error) {
 		RedisPass:  getEnv("REDIS_PASS", ""),
 		JWTSecret:  getEnv("JWT_SECRET", ""),
 		GinMode:    getEnv("GIN_MODE", "debug"),
+		DBMaxIdleConns: getEnvAsInt("DB_MAX_IDLE_CONNS", 3),
+		DBMaxOpenConns: getEnvAsInt("DB_MAX_OPEN_CONNS", 10),
+		DBMaxLifetime:  getEnvAsInt("DB_MAX_LIFETIME", 30),
 	}
 
 	if config.JWTSecret == "" {
