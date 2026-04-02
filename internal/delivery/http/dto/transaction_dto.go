@@ -193,8 +193,22 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 		}
 	}
 
-	resp.Total = subtotal
-	resp.TotalPrice = t.Total
+	resp.Total = t.Total
+	
+	// Recalculate grand total for the response
+	grandTotal := t.Total
+	if t.DiscountType == 1 { // Percentage
+		discountValue := (t.Total * t.Discount) / 100
+		grandTotal = t.Total - discountValue
+	} else { // Nominal
+		grandTotal = t.Total - t.Discount
+	}
+
+	grandTotal += t.ShippingCost + t.PaymentCode
+	if grandTotal < 0 {
+		grandTotal = 0
+	}
+	resp.TotalPrice = grandTotal
 
 	return resp
 }

@@ -75,21 +75,7 @@ func (u *transactionUsecase) Create(ctx context.Context, req *domain.Transaction
 		}
 	}
 
-	// Recalculate total based on valid details
-	// Discount and shipping cost are added later from req
-	var calculatedTotal int
-	if req.DiscountType == 1 { // Percentage
-		discountValue := (subtotal * req.Discount) / 100
-		calculatedTotal = subtotal - discountValue
-	} else { // Nominal
-		calculatedTotal = subtotal - req.Discount
-	}
-
-	calculatedTotal += req.ShippingCost + req.PaymentCode
-	if calculatedTotal < 0 {
-		calculatedTotal = 0
-	}
-	req.Total = calculatedTotal
+	req.Total = subtotal
 
 	// Auto-generate code if empty
 	if req.TransactionCode == "" {
@@ -223,20 +209,7 @@ func (u *transactionUsecase) Update(ctx context.Context, id int, req *domain.Tra
 		}
 		tx.Details = newDetails
 
-		// Recalculate total
-		var calculatedTotal int
-		if tx.DiscountType == 1 { // Percentage
-			discountValue := (subtotal * tx.Discount) / 100
-			calculatedTotal = subtotal - discountValue
-		} else { // Nominal
-			calculatedTotal = subtotal - tx.Discount
-		}
-
-		calculatedTotal += tx.ShippingCost + tx.PaymentCode
-		if calculatedTotal < 0 {
-			calculatedTotal = 0
-		}
-		tx.Total = calculatedTotal
+		tx.Total = subtotal
 	}
 
 	// Senior Trick: Clear associations pointers before Save to prevent GORM 
