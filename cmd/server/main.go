@@ -96,6 +96,8 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 
 	// CORS Middleware (allow Vue frontend on different port)
 	r.Use(middleware.CORSMiddleware())
