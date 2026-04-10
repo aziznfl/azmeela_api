@@ -22,18 +22,23 @@ func (r *customerRepository) Fetch(ctx context.Context, filter map[string]interf
 	query := r.db.WithContext(ctx).Model(&domain.Customer{})
 
 	order := "DESC"
-	if ord, ok := filter["order"]; ok {
+	if ord, ok := filter["order"]; ok && ord.(string) != "" {
 		order = ord.(string)
-		delete(filter, "order")
 	}
+	delete(filter, "order")
 
 	sortOrder := "t_customer.date_sign " + order
-	if sortBy, ok := filter["sort_by"]; ok {
-		if sortBy == "id" {
+	if sortBy, ok := filter["sort_by"]; ok && sortBy.(string) != "" {
+		switch sortBy.(string) {
+		case "id":
 			sortOrder = "t_customer.id_customer " + order
+		case "created_at":
+			sortOrder = "t_customer.date_sign " + order
+		case "name":
+			sortOrder = "t_customer.name_customer " + order
 		}
-		delete(filter, "sort_by")
 	}
+	delete(filter, "sort_by")
 
 	for k, v := range filter {
 		if k == "search" {

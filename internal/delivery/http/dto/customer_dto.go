@@ -10,13 +10,13 @@ type CustomerResponse struct {
 	ID               int                       `json:"id"`
 	CustomerTypeID   int                       `json:"customer_type_id"`
 	CustomerType     *CustomerTypeResponse     `json:"customer_type,omitempty"`
-	CustomerTypeName string                    `json:"customer_type_name,omitempty"`
+	CustomerTypeName *string                   `json:"customer_type_name,omitempty"`
 	CreatedAt        time.Time                 `json:"created_at"`
-	FullName         string                    `json:"full_name"`
-	PhoneNumber      string                    `json:"phone_number"`
+	FullName         *string                   `json:"full_name"`
+	PhoneNumber      *string                   `json:"phone_number"`
 	Deposit          float64                   `json:"deposit"`
-	MembershipStatus string                    `json:"membership_status"`
-	Email            string                    `json:"email"`
+	MembershipStatus *string                   `json:"membership_status"`
+	Email            *string                   `json:"email"`
 	Addresses        []CustomerAddressResponse `json:"addresses,omitempty"`
 }
 
@@ -27,15 +27,15 @@ type CustomerTypeResponse struct {
 }
 
 type CustomerAddressResponse struct {
-	ID            int       `json:"id"`
-	CustomerID    int       `json:"customer_id"`
-	Country       string    `json:"country"`
-	Province      string    `json:"province"`
-	City          string    `json:"city"`
-	District      string    `json:"district"`
-	SubDistrict   string    `json:"sub_district,omitempty"`
-	StreetAddress string    `json:"street_address"`
-	PostalCode    string    `json:"postal_code"`
+	ID            int     `json:"id"`
+	CustomerID    int     `json:"customer_id"`
+	Country       *string `json:"country"`
+	Province      *string `json:"province"`
+	City          *string `json:"city"`
+	District      *string `json:"district"`
+	SubDistrict   *string `json:"sub_district,omitempty"`
+	StreetAddress *string `json:"street_address"`
+	PostalCode    *string `json:"postal_code"`
 }
 
 func ToCustomerResponse(c *domain.Customer) *CustomerResponse {
@@ -43,24 +43,14 @@ func ToCustomerResponse(c *domain.Customer) *CustomerResponse {
 		return nil
 	}
 
-	phone := ""
-	if c.PhoneNumber != nil {
-		phone = *c.PhoneNumber
-	}
-
-	email := ""
-	if c.Email != nil {
-		email = *c.Email
-	}
-
 	resp := &CustomerResponse{
 		ID:               c.ID,
 		CustomerTypeID:   c.CustomerTypeID,
-		FullName:         c.FullName,
-		PhoneNumber:      phone,
+		FullName:         stringToPtr(c.FullName),
+		PhoneNumber:      ptrToStringPtr(c.PhoneNumber),
 		Deposit:          c.Deposit,
-		MembershipStatus: c.MembershipStatus,
-		Email:            email,
+		MembershipStatus: stringToPtr(c.MembershipStatus),
+		Email:            ptrToStringPtr(c.Email),
 		CreatedAt:        c.CreatedAt,
 	}
 
@@ -70,7 +60,7 @@ func ToCustomerResponse(c *domain.Customer) *CustomerResponse {
 		Name:    c.CustomerType.Name,
 		Initial: c.CustomerType.Initial,
 	}
-	resp.CustomerTypeName = c.CustomerType.Name
+	resp.CustomerTypeName = stringToPtr(c.CustomerType.Name)
 
 	// Map Addresses if loaded
 	if len(c.Addresses) > 0 {
@@ -88,27 +78,31 @@ func ToCustomerAddressResponse(a *domain.CustomerAddress) *CustomerAddressRespon
 		return nil
 	}
 
-	subDistrict := ""
-	if a.SubDistrict != nil {
-		subDistrict = *a.SubDistrict
-	}
-
-	postalCode := ""
-	if a.PostalCode != nil {
-		postalCode = *a.PostalCode
-	}
-
 	return &CustomerAddressResponse{
 		ID:            a.ID,
 		CustomerID:    a.CustomerID,
-		Country:       a.Country,
-		Province:      a.Province,
-		City:          a.City,
-		District:      a.District,
-		SubDistrict:   subDistrict,
-		StreetAddress: a.StreetAddress,
-		PostalCode:    postalCode,
+		Country:       stringToPtr(a.Country),
+		Province:      stringToPtr(a.Province),
+		City:          stringToPtr(a.City),
+		District:      stringToPtr(a.District),
+		SubDistrict:   ptrToStringPtr(a.SubDistrict),
+		StreetAddress: stringToPtr(a.StreetAddress),
+		PostalCode:    ptrToStringPtr(a.PostalCode),
 	}
+}
+
+func stringToPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func ptrToStringPtr(s *string) *string {
+	if s == nil || *s == "" {
+		return nil
+	}
+	return s
 }
 
 func ToCustomerListResponse(customers []domain.Customer) []*CustomerResponse {

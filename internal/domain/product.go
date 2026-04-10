@@ -6,10 +6,10 @@ import (
 )
 
 type ProductType struct {
-	ID        int       `gorm:"primaryKey;column:id_product_type;autoIncrement"`
-	Name      string    `gorm:"column:name_product_type;unique"`
-	WebStatus int       `gorm:"column:status_web"`
-	CreatedAt time.Time `gorm:"column:date;autoCreateTime"`
+	ID        int       `gorm:"primaryKey;column:id_product_type;autoIncrement" json:"id"`
+	Name      string    `gorm:"column:name_product_type;unique" json:"name"`
+	WebStatus int       `gorm:"column:status_web" json:"web_status"`
+	CreatedAt time.Time `gorm:"column:date;autoCreateTime" json:"created_at"`
 }
 
 func (ProductType) TableName() string {
@@ -26,16 +26,16 @@ func (ProductSize) TableName() string {
 }
 
 type ProductCode struct {
-	ID            int            `gorm:"primaryKey;column:id_product_code;autoIncrement"`
-	ProductTypeID int            `gorm:"column:id_product_type;uniqueIndex:idx_product_code_name"`
-	Name          string         `gorm:"column:name_product_code;uniqueIndex:idx_product_code_name"`
-	WebStatus     int            `gorm:"column:status_web"`
-	CodeStatus    int            `gorm:"column:status_code"`
-	Description   string         `gorm:"column:description"`
-	Information   string         `gorm:"column:information"`
-	CreatedAt     time.Time      `gorm:"column:date;autoCreateTime"`
-	Type          *ProductType   `gorm:"foreignKey:ProductTypeID"`
-	Products      []Product      `gorm:"foreignKey:ProductCodeID"`
+	ID            int            `gorm:"primaryKey;column:id_product_code;autoIncrement" json:"id"`
+	ProductTypeID int            `gorm:"column:id_product_type;uniqueIndex:idx_product_code_name" json:"product_type_id"`
+	Name          string         `gorm:"column:name_product_code;uniqueIndex:idx_product_code_name" json:"name"`
+	WebStatus     int            `gorm:"column:status_web" json:"web_status"`
+	CodeStatus    int            `gorm:"column:status_code" json:"code_status"`
+	Description   string         `gorm:"column:description" json:"description"`
+	Information   string         `gorm:"column:information" json:"information"`
+	CreatedAt     time.Time      `gorm:"column:date;autoCreateTime" json:"created_at"`
+	Type          *ProductType   `gorm:"foreignKey:ProductTypeID" json:"type,omitempty"`
+	Products      []Product      `gorm:"foreignKey:ProductCodeID" json:"products,omitempty"`
 }
 
 func (ProductCode) TableName() string {
@@ -50,19 +50,19 @@ type ProductCodeWithType struct {
 }
 
 type Product struct {
-	ID            int            `gorm:"primaryKey;column:id_product;autoIncrement"`
-	ProductCodeID int            `gorm:"column:id_product_code;uniqueIndex:idx_product_variation"`
-	AdminID       int            `gorm:"column:id_admin"`
-	Status        int            `gorm:"column:status_product"`
-	SKU           string         `gorm:"column:sku"`
-	Color         string         `gorm:"column:color;uniqueIndex:idx_product_variation"`
-	Tags          string         `gorm:"column:tags"`
-	WebStatus     int            `gorm:"column:status_web"`
-	SEOLink       string         `gorm:"column:seo_link"`
-	Views         int            `gorm:"column:viewed"`
-	CreatedAt     time.Time      `gorm:"column:date;autoCreateTime"`
-	ProductCode   *ProductCode   `gorm:"foreignKey:ProductCodeID"`
-	Variants      []ProductPrice `gorm:"foreignKey:ProductID"`
+	ID            int            `gorm:"primaryKey;column:id_product;autoIncrement" json:"id"`
+	ProductCodeID int            `gorm:"column:id_product_code;uniqueIndex:idx_product_variation" json:"product_code_id"`
+	AdminID       int            `gorm:"column:id_admin" json:"admin_id"`
+	Status        int            `gorm:"column:status_product" json:"status"`
+	SKU           string         `gorm:"column:sku" json:"sku"`
+	Color         string         `gorm:"column:color;uniqueIndex:idx_product_variation" json:"color"`
+	Tags          string         `gorm:"column:tags" json:"tags"`
+	WebStatus     int            `gorm:"column:status_web" json:"web_status"`
+	SEOLink       string         `gorm:"column:seo_link" json:"seo_link"`
+	Views         int            `gorm:"column:viewed" json:"views"`
+	CreatedAt     time.Time      `gorm:"column:date;autoCreateTime" json:"created_at"`
+	ProductCode   *ProductCode   `gorm:"foreignKey:ProductCodeID" json:"product_code,omitempty"`
+	Variants      []ProductPrice `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
 }
 
 func (Product) TableName() string {
@@ -70,22 +70,22 @@ func (Product) TableName() string {
 }
 
 type ProductPrice struct {
-	ID             int          `gorm:"primaryKey;column:id_product_price;autoIncrement"`
-	ProductID      int          `gorm:"column:id_product;uniqueIndex:idx_product_price_unique"`
-	CustomerTypeID int          `gorm:"column:id_customer_type;uniqueIndex:idx_product_price_unique"`
-	ProductSizeID  int          `gorm:"column:id_product_size;uniqueIndex:idx_product_price_unique"`
-	AdminID        int          `gorm:"column:id_admin"`
-	Price          float64      `gorm:"column:price"`
-	Specification  string       `gorm:"column:spesification"`
-	Stock          int          `gorm:"column:stock"`
-	CartedCount    int          `gorm:"column:carted"`
-	SoldCount      int          `gorm:"column:buyed"`
-	Weight         int          `gorm:"column:weight"`
-	ProductDiscount int         `gorm:"column:diskon_produk"`
-	CreatedAt      time.Time    `gorm:"column:date;autoCreateTime"`
-	Product        *Product      `gorm:"foreignKey:ProductID"`
-	Size           *ProductSize  `gorm:"foreignKey:ProductSizeID"`
-	CustomerType   *CustomerType `gorm:"foreignKey:CustomerTypeID"`
+	ID             int          `gorm:"primaryKey;column:id_product_price;autoIncrement" json:"id"`
+	ProductID      int          `gorm:"column:id_product;uniqueIndex:idx_product_price_unique" json:"product_id"`
+	CustomerTypeID int          `gorm:"column:id_customer_type;uniqueIndex:idx_product_price_unique" json:"customer_type_id"`
+	ProductSizeID  int          `gorm:"column:id_product_size;uniqueIndex:idx_product_price_unique" json:"product_size_id"`
+	AdminID        int          `gorm:"column:id_admin" json:"admin_id"`
+	Price          float64      `gorm:"column:price" json:"price"`
+	Specification  string       `gorm:"column:spesification" json:"specification"`
+	Stock          int          `gorm:"column:stock" json:"stock"`
+	CartedCount    int          `gorm:"column:carted" json:"carted_count"`
+	SoldCount      int          `gorm:"column:buyed" json:"sold_count"`
+	Weight         int          `gorm:"column:weight" json:"weight"`
+	ProductDiscount int         `gorm:"column:diskon_produk" json:"product_discount"`
+	CreatedAt      time.Time    `gorm:"column:date;autoCreateTime" json:"created_at"`
+	Product        *Product      `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+	Size           *ProductSize  `gorm:"foreignKey:ProductSizeID" json:"size,omitempty"`
+	CustomerType   *CustomerType `gorm:"foreignKey:CustomerTypeID" json:"customer_type,omitempty"`
 }
 
 type ProductStockLog struct {
