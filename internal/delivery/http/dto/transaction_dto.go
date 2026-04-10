@@ -194,7 +194,7 @@ func ToTransactionResponse(t *domain.Transaction) *TransactionResponse {
 	}
 
 	resp.Total = t.Total
-	
+
 	// Recalculate grand total for the response
 	grandTotal := t.Total
 	if t.DiscountType == 1 { // Percentage

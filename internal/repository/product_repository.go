@@ -17,7 +17,7 @@ func NewProductRepository(db *gorm.DB) domain.ProductRepository {
 
 func (r *productRepository) FetchTypes(ctx context.Context) ([]domain.ProductType, error) {
 	var types []domain.ProductType
-	err := r.db.WithContext(ctx).Order("id_product_type ASC").Find(&types).Error
+	err := r.db.WithContext(ctx).Order("LOWER(name_product_type) ASC").Find(&types).Error
 	return types, err
 }
 
@@ -39,10 +39,23 @@ func (r *productRepository) DeleteType(ctx context.Context, id int) error {
 	return r.db.WithContext(ctx).Delete(&domain.ProductType{}, id).Error
 }
 
-func (r *productRepository) FetchSizes(ctx context.Context) ([]domain.ProductSize, error) {
-	var sizes []domain.ProductSize
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&sizes).Error
-	return sizes, err
+func (r *productRepository) FetchSizes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductSizeWithCustomerType, error) {
+	var results []domain.ProductSizeWithCustomerType
+	query := r.db.WithContext(ctx).Table("t_product_price").
+		Select("t_product_size.id_product_size as id_product_size, t_product_size.name_product_size as name, t_product_price.id_customer_type as customer_type_id, t_customer_type.name_customer_type as customer_type_name").
+		Joins("JOIN t_product_size ON t_product_price.id_product_size = t_product_size.id_product_size").
+		Joins("JOIN t_customer_type ON t_product_price.id_customer_type = t_customer_type.id_customer_type")
+
+	if customerTypeID, ok := filter["customer_type_id"].(int); ok && customerTypeID != 0 {
+		query = query.Where("t_product_price.id_customer_type = ?", customerTypeID)
+	}
+
+	if productID, ok := filter["product_id"].(int); ok && productID != 0 {
+		query = query.Where("t_product_price.id_product = ?", productID)
+	}
+
+	err := query.Order("t_product_price.id_customer_type ASC").Scan(&results).Error
+	return results, err
 }
 
 func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]interface{}) ([]domain.ProductCode, error) {
@@ -52,17 +65,15 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 	query = query.Preload("Type").
 		Preload("Products", func(db *gorm.DB) *gorm.DB {
 			return db.Order("color ASC")
-		})
-
-	if custTypeID, ok := filter["customer_type_id"].(int); ok && custTypeID != 0 {
-		query = query.Where("EXISTS (SELECT 1 FROM t_product p JOIN t_product_price pp ON p.id_product = pp.id_product WHERE p.id_product_code = t_product_code.id_product_code AND pp.id_customer_type = ?)", custTypeID)
-		query = query.Preload("Products.Variants", "id_customer_type = ?", custTypeID)
-	} else {
-		query = query.Preload("Products.Variants")
-	}
-
-	query = query.Preload("Products.Variants.Size")
-	query = query.Preload("Products.Variants.CustomerType")
+		}).
+		Preload("Products.Variants", func(db *gorm.DB) *gorm.DB {
+			if customerTypeID, ok := filter["customer_type_id"].(int); ok && customerTypeID != 0 {
+				return db.Where("id_customer_type = ?", customerTypeID)
+			}
+			return db
+		}).
+		Preload("Products.Variants.Size").
+		Preload("Products.Variants.CustomerType")
 
 	if name, ok := filter["name"].(string); ok && name != "" {
 		query = query.Where("name_product_code ILIKE ?", "%"+name+"%")
@@ -76,7 +87,7 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 		query = query.Where("id_product_code = ?", codeID)
 	}
 
-	err := query.Order("date DESC").Find(&codes).Error
+	err := query.Order("name_product_code ASC").Find(&codes).Error
 	return codes, err
 }
 
@@ -197,7 +208,7 @@ func (r *productRepository) DeleteProduct(ctx context.Context, id int) error {
 }
 
 func (r *productRepository) FetchColors(ctx context.Context, productCodeID int) ([]domain.ProductColorResponse, error) {
-	var results []domain.ProductColorResponse
+	results := []domain.ProductColorResponse{}
 	err := r.db.WithContext(ctx).Table("t_product").
 		Select("id_product as id, id_product_code as product_code_id, color").
 		Where("id_product_code = ?", productCodeID).
@@ -207,12 +218,51 @@ func (r *productRepository) FetchColors(ctx context.Context, productCodeID int) 
 }
 
 func (r *productRepository) FetchSizesType(ctx context.Context, productID int, customerTypeID int) ([]domain.ProductSizeTypeResponse, error) {
-	var results []domain.ProductSizeTypeResponse
-	err := r.db.WithContext(ctx).Table("t_product_price").
-		Select("t_product_price.id_product_price as id, t_product_size.name_product_size as size_name, t_product_price.price, t_product_price.stock, t_product_price.weight").
+	results := []domain.ProductSizeTypeResponse{}
+	query := r.db.WithContext(ctx).Table("t_product_price").
+		Select("t_product_price.id_product_price as id, t_product_price.id_product_size as product_size_id, t_product_size.name_product_size as size_name, t_product_price.price, t_product_price.stock, t_product_price.weight, t_product_price.id_customer_type as customer_type_id, t_customer_type.name_customer_type as customer_type_name").
 		Joins("LEFT JOIN t_product_size ON t_product_price.id_product_size = t_product_size.id_product_size").
-		Where("t_product_price.id_product = ? AND t_product_price.id_customer_type = ?", productID, customerTypeID).
-		Order("t_product_price.id_product_size ASC").
+		Joins("LEFT JOIN t_customer_type ON t_product_price.id_customer_type = t_customer_type.id_customer_type").
+		Where("t_product_price.id_product = ?", productID)
+
+	if customerTypeID > 0 {
+		query = query.Where("t_product_price.id_customer_type = ?", customerTypeID)
+	}
+
+	err := query.Order("t_product_price.id_customer_type ASC, t_product_price.id_product_size ASC").
 		Scan(&results).Error
 	return results, err
 }
+
+func (r *productRepository) FetchProductSizes(ctx context.Context) ([]domain.ProductSize, error) {
+	var sizes []domain.ProductSize
+	err := r.db.WithContext(ctx).Order("LOWER(name_product_size) ASC").Find(&sizes).Error
+	return sizes, err
+}
+
+func (r *productRepository) CreateProductSize(ctx context.Context, size *domain.ProductSize) error {
+	return r.db.WithContext(ctx).Create(size).Error
+}
+
+func (r *productRepository) UpdateProductSize(ctx context.Context, size *domain.ProductSize) error {
+	return r.db.WithContext(ctx).Save(size).Error
+}
+
+func (r *productRepository) DeleteProductSize(ctx context.Context, id int) error {
+	return r.db.WithContext(ctx).Delete(&domain.ProductSize{}, id).Error
+}
+
+func (r *productRepository) CreatePrice(ctx context.Context, price *domain.ProductPrice) error {
+	return r.db.WithContext(ctx).Create(price).Error
+}
+
+func (r *productRepository) UpdatePrice(ctx context.Context, price *domain.ProductPrice) error {
+	return r.db.WithContext(ctx).Model(price).Select(
+		"Price", "Stock", "Weight", "ProductSizeID", "CustomerTypeID",
+	).Updates(price).Error
+}
+
+func (r *productRepository) DeletePrice(ctx context.Context, id int) error {
+	return r.db.WithContext(ctx).Delete(&domain.ProductPrice{}, id).Error
+}
+

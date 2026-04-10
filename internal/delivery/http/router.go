@@ -205,27 +205,37 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 	productHandler := handler.NewProductHandler(productUcase)
 	products := r.Group("/products").Use(authMiddleware)
 	{
-		products.GET("/inventory", productHandler.GetInventory)
-		products.GET("/inventory/logs/:id", productHandler.GetStockLogs)
-		products.GET("/sizes", productHandler.GetSizes)
-		products.GET("/sizes_type", productHandler.GetSizesType)
-		products.GET("/colors", productHandler.GetColors)
-		products.PUT("/inventory/:id/stock", productHandler.UpdateStock)
-
-		products.GET("/codes", productHandler.GetCodes)
-		products.GET("/code_with_types", productHandler.GetCodesWithTypes)
-		products.POST("/codes", productHandler.CreateCode)
-		products.PUT("/codes/:id", productHandler.UpdateCode)
-		products.DELETE("/codes/:id", productHandler.DeleteCode)
+		products.GET("", productHandler.GetProducts)
+		products.POST("", productHandler.CreateProduct)
+		products.PUT("/:id", productHandler.UpdateProduct)
+		products.DELETE("/:id", productHandler.DeleteProduct)
 
 		products.GET("/types", productHandler.GetTypes)
 		products.POST("/types", productHandler.CreateType)
 		products.PUT("/types/:id", productHandler.UpdateType)
 		products.DELETE("/types/:id", productHandler.DeleteType)
 
-		products.POST("/", productHandler.CreateProduct)
-		products.PUT("/:id", productHandler.UpdateProduct)
-		products.DELETE("/:id", productHandler.DeleteProduct)
+		products.GET("/codes", productHandler.GetCodes)
+		products.POST("/codes", productHandler.CreateCode)
+		products.PUT("/codes/:id", productHandler.UpdateCode)
+		products.DELETE("/codes/:id", productHandler.DeleteCode)
+
+		products.GET("/sizes", productHandler.GetAllProductSizes)
+		products.POST("/sizes", productHandler.CreateProductSize)
+		products.PUT("/sizes/:id", productHandler.UpdateProductSize)
+		products.DELETE("/sizes/:id", productHandler.DeleteProductSize)
+
+		products.GET("/code_with_types", productHandler.GetCodesWithTypes)
+		products.GET("/sizes_type", productHandler.GetSizesType)
+		products.GET("/size_with_price", productHandler.GetSizeWithPrice)
+
+		products.POST("/prices", productHandler.CreateProductPrice)
+		products.PUT("/prices/:id", productHandler.UpdateProductPrice)
+		products.DELETE("/prices/:id", productHandler.DeleteProductPrice)
+
+		products.GET("/inventory", productHandler.GetInventory)
+		products.GET("/inventory/logs/:id", productHandler.GetStockLogs)
+		products.PUT("/inventory/:id/stock", productHandler.UpdateStock)
 	}
 }
 

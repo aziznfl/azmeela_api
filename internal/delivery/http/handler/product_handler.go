@@ -22,14 +22,16 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	filter := make(map[string]interface{})
-	if productCodeID := c.Query("product_code_id"); productCodeID != "" {
-		id, _ := strconv.Atoi(productCodeID)
-		filter["product_code_id"] = id
-	}
 	if typeID := c.Query("product_type_id"); typeID != "" {
 		id, _ := strconv.Atoi(typeID)
 		filter["product_type_id"] = id
 	}
+
+	if codeID := c.Query("product_code_id"); codeID != "" {
+		id, _ := strconv.Atoi(codeID)
+		filter["product_code_id"] = id
+	}
+
 	if customerTypeID := c.Query("customer_type_id"); customerTypeID != "" {
 		id, _ := strconv.Atoi(customerTypeID)
 		filter["customer_type_id"] = id
@@ -76,7 +78,7 @@ func (h *ProductHandler) GetCodesWithTypes(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Daftar kode produk dengan tipe berhasil diambil", codes)
+	SuccessResponse(c, http.StatusOK, "Daftar kode produk dengan tipe berhasil diambil", dto.ToProductCodeWithTypeListResponse(codes))
 }
 
 func (h *ProductHandler) GetTypes(c *gin.Context) {
@@ -87,16 +89,6 @@ func (h *ProductHandler) GetTypes(c *gin.Context) {
 		return
 	}
 	SuccessResponse(c, http.StatusOK, "Daftar tipe produk berhasil diambil", dto.ToProductTypeListResponse(types))
-}
-
-func (h *ProductHandler) GetSizes(c *gin.Context) {
-	ctx := c.Request.Context()
-	sizes, err := h.Usecase.GetProductSizes(ctx)
-	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "")
-		return
-	}
-	SuccessResponse(c, http.StatusOK, "Daftar ukuran produk berhasil diambil", dto.ToProductSizeListResponse(sizes))
 }
 
 func (h *ProductHandler) UpdateStock(c *gin.Context) {
@@ -123,33 +115,35 @@ func (h *ProductHandler) UpdateStock(c *gin.Context) {
 
 func (h *ProductHandler) CreateType(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req domain.ProductType
+	var req dto.CreateProductTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.Usecase.CreateProductType(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	if err := h.Usecase.CreateProductType(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Tipe produk berhasil dibuat", dto.ToProductTypeResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Tipe produk berhasil dibuat", dto.ToProductTypeResponse(entity))
 }
 
 func (h *ProductHandler) UpdateType(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
 
-	var req domain.ProductType
+	var req dto.CreateProductTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req.ID = id
-	if err := h.Usecase.UpdateProductType(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	entity.ID = id
+	if err := h.Usecase.UpdateProductType(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Tipe produk berhasil diperbarui", dto.ToProductTypeResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Tipe produk berhasil diperbarui", dto.ToProductTypeResponse(entity))
 }
 
 func (h *ProductHandler) DeleteType(c *gin.Context) {
@@ -165,33 +159,35 @@ func (h *ProductHandler) DeleteType(c *gin.Context) {
 
 func (h *ProductHandler) CreateCode(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req domain.ProductCode
+	var req dto.CreateProductCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.Usecase.CreateProductCode(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	if err := h.Usecase.CreateProductCode(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Kode produk berhasil dibuat", dto.ToProductCodeResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Kode produk berhasil dibuat", dto.ToProductCodeResponse(entity))
 }
 
 func (h *ProductHandler) UpdateCode(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
 
-	var req domain.ProductCode
+	var req dto.CreateProductCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req.ID = id
-	if err := h.Usecase.UpdateProductCode(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	entity.ID = id
+	if err := h.Usecase.UpdateProductCode(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Kode produk berhasil diperbarui", dto.ToProductCodeResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Kode produk berhasil diperbarui", dto.ToProductCodeResponse(entity))
 }
 
 func (h *ProductHandler) DeleteCode(c *gin.Context) {
@@ -207,32 +203,34 @@ func (h *ProductHandler) DeleteCode(c *gin.Context) {
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	ctx := c.Request.Context()
-	var req domain.Product
+	var req dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.Usecase.CreateProduct(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	if err := h.Usecase.CreateProduct(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Produk berhasil dibuat", dto.ToProductResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Produk berhasil dibuat", dto.ToProductResponse(entity))
 }
 
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, _ := strconv.Atoi(c.Param("id"))
-	var req domain.Product
+	var req dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	req.ID = id
-	if err := h.Usecase.UpdateProduct(ctx, &req); err != nil {
+	entity := req.ToEntity()
+	entity.ID = id
+	if err := h.Usecase.UpdateProduct(ctx, entity); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "")
 		return
 	}
-	SuccessResponse(c, http.StatusOK, "Produk berhasil diperbarui", dto.ToProductResponse(&req))
+	SuccessResponse(c, http.StatusOK, "Produk berhasil diperbarui", dto.ToProductResponse(entity))
 }
 
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
@@ -258,7 +256,7 @@ func (h *ProductHandler) GetStockLogs(c *gin.Context) {
 	SuccessResponse(c, http.StatusOK, "Log stok berhasil diambil", dto.ToProductStockLogListResponse(logs))
 }
 
-func (h *ProductHandler) GetColors(c *gin.Context) {
+func (h *ProductHandler) GetProducts(c *gin.Context) {
 	ctx := c.Request.Context()
 	productCodeID, _ := strconv.Atoi(c.Query("product_code_id"))
 
@@ -268,7 +266,7 @@ func (h *ProductHandler) GetColors(c *gin.Context) {
 		return
 	}
 
-	SuccessResponse(c, http.StatusOK, "Daftar warna produk berhasil diambil", colors)
+	SuccessResponse(c, http.StatusOK, "Daftar warna produk berhasil diambil", dto.ToProductColorListResponse(colors))
 }
 
 func (h *ProductHandler) GetSizesType(c *gin.Context) {
@@ -282,5 +280,127 @@ func (h *ProductHandler) GetSizesType(c *gin.Context) {
 		return
 	}
 
-	SuccessResponse(c, http.StatusOK, "Daftar ukuran dan harga produk berhasil diambil", sizes)
+	SuccessResponse(c, http.StatusOK, "Daftar ukuran dan harga produk berhasil diambil", dto.ToProductSizeTypeListResponse(sizes))
 }
+
+func (h *ProductHandler) GetSizeWithPrice(c *gin.Context) {
+	ctx := c.Request.Context()
+	productID, _ := strconv.Atoi(c.Query("product_id"))
+	customerTypeID, _ := strconv.Atoi(c.Query("customer_type_id"))
+
+	sizes, err := h.Usecase.GetProductSizesType(ctx, productID, customerTypeID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Daftar ukuran dan harga produk berhasil diambil", dto.ToProductSizeTypeListResponse(sizes))
+}
+
+func (h *ProductHandler) GetAllProductSizes(c *gin.Context) {
+	ctx := c.Request.Context()
+	sizes, err := h.Usecase.GetAllProductSizes(ctx)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Daftar semua ukuran produk berhasil diambil", dto.ToProductSizeListResponse(sizes))
+}
+
+func (h *ProductHandler) CreateProductSize(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req dto.CreateProductSizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	entity := req.ToEntity()
+	if err := h.Usecase.CreateProductSize(ctx, entity); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Ukuran produk berhasil dibuat", dto.ToProductSizeResponse(entity))
+}
+
+func (h *ProductHandler) UpdateProductSize(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	var req dto.CreateProductSizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	entity := req.ToEntity()
+	entity.ID = id
+	if err := h.Usecase.UpdateProductSize(ctx, entity); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Ukuran produk berhasil diperbarui", dto.ToProductSizeResponse(entity))
+}
+
+func (h *ProductHandler) DeleteProductSize(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	if err := h.Usecase.DeleteProductSize(ctx, id); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Ukuran produk berhasil dihapus", nil)
+}
+
+func (h *ProductHandler) CreateProductPrice(c *gin.Context) {
+	ctx := c.Request.Context()
+	payload := c.MustGet("authorization_payload").(*token.Payload)
+
+	var req dto.CreateProductPriceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	entity := req.ToEntity()
+	entity.AdminID = payload.UserID
+
+	if err := h.Usecase.CreateProductPrice(ctx, entity); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Harga produk berhasil dibuat", entity)
+}
+
+func (h *ProductHandler) UpdateProductPrice(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.Atoi(c.Param("id"))
+	payload := c.MustGet("authorization_payload").(*token.Payload)
+
+	var req dto.CreateProductPriceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	entity := req.ToEntity()
+	entity.ID = id
+	entity.AdminID = payload.UserID
+
+	if err := h.Usecase.UpdateProductPrice(ctx, entity); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Harga produk berhasil diperbarui", entity)
+}
+
+func (h *ProductHandler) DeleteProductPrice(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	if err := h.Usecase.DeleteProductPrice(ctx, id); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Harga produk berhasil dihapus", nil)
+}
+
