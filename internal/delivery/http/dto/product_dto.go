@@ -125,7 +125,7 @@ func (r *CreateProductCodeRequest) ToEntity() *domain.ProductCode {
 
 type CreateProductRequest struct {
 	ProductCodeID int    `json:"product_code_id" binding:"required"`
-	SKU           string `json:"sku" binding:"required"`
+	SKU           string `json:"sku"`
 	Color         string `json:"color" binding:"required"`
 	Status        int    `json:"status"`
 	WebStatus     int    `json:"web_status"`

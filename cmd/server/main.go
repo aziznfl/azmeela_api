@@ -63,9 +63,9 @@ func main() {
 	db.AutoMigrate(
 		&domain.AdminType{},
 		&domain.Employee{},
-		&domain.CustomerType{}, 
-		&domain.Customer{}, 
-		&domain.TransactionStatus{}, 
+		&domain.CustomerType{},
+		&domain.Customer{},
+		&domain.TransactionStatus{},
 		&domain.Transaction{},
 		&domain.ProductType{},
 		&domain.ProductSize{},
