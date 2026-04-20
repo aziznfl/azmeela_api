@@ -1,0 +1,11 @@
+.git
+.DS_Store
+bin/
+main
+*.log
+.env
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+node_modules/
+dist/

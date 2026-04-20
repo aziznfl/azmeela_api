@@ -1,11 +1,11 @@
 package config
 
 import (
+	"bufio"
 	"log"
 	"os"
+	"strings"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -39,9 +39,40 @@ func getEnvAsInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
+// LoadDotEnv loads environment variables from a .env file
+func LoadDotEnv(path string) {
+	file, err := os.Open(path + "/.env")
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		// Remove quotes if present
+		value = strings.Trim(value, `"'`)
+
+		if os.Getenv(key) == "" {
+			os.Setenv(key, value)
+		}
+	}
+}
+
 func LoadConfig(path string) (*Config, error) {
 	// Try loading from .env file, but don't fail if it's missing
-	_ = godotenv.Load(path + "/.env")
+	LoadDotEnv(path)
 
 	config := &Config{
 		ServerPort: getEnv("SERVER_PORT", "8080"),
