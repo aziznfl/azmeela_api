@@ -104,6 +104,8 @@ func (u *transactionUsecase) Create(ctx context.Context, req *domain.Transaction
 		DiscountType:    req.DiscountType,
 		IsReminded:      req.IsReminded,
 		Details:         details,
+		TransactionDate: time.Now(),
+		CreatedAt:       time.Now(),
 	}
 
 	// Default status if empty
