@@ -13,7 +13,7 @@ type holidayRepository struct {
 
 func NewHolidayRepository(db *gorm.DB) domain.HolidayRepository {
 	return &holidayRepository{
-		BaseRepository: BaseRepository[domain.Holiday]{db: db},
+		BaseRepository: *NewBaseRepository[domain.Holiday](db),
 	}
 }
 

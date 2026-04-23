@@ -78,12 +78,6 @@ type CustomerRequest struct {
 	IsActive         *bool   `json:"is_active"`
 }
 
-type PaginationMeta struct {
-	Total       int64 `json:"total"`
-	CurrentPage int   `json:"current_page"`
-	LastPage    int   `json:"last_page"`
-	PerPage     int   `json:"per_page"`
-}
 
 type CustomerRepository interface {
 	Fetch(ctx context.Context, filter map[string]interface{}, offset, limit int) ([]Customer, int64, error)

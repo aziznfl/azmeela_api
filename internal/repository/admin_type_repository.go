@@ -13,7 +13,7 @@ type adminTypeRepository struct {
 
 func NewAdminTypeRepository(db *gorm.DB) domain.AdminTypeRepository {
 	return &adminTypeRepository{
-		BaseRepository: BaseRepository[domain.AdminType]{db: db},
+		BaseRepository: *NewBaseRepository[domain.AdminType](db),
 	}
 }
 

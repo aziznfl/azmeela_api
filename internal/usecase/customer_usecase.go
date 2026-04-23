@@ -27,36 +27,19 @@ type customerFetchResponse struct {
 }
 
 func (u *customerUsecase) Fetch(ctx context.Context, filter map[string]interface{}, page, limit int) ([]domain.Customer, domain.PaginationMeta, error) {
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 10
-	}
-
 	cacheKey := fmt.Sprintf("customer_list:%v:%d:%d", filter, page, limit)
 	var cached customerFetchResponse
 	if err := u.redisRepo.Get(ctx, cacheKey, &cached); err == nil {
 		return cached.Customers, cached.Meta, nil
 	}
 
-	offset := (page - 1) * limit
+	offset, _ := domain.CalculatePagination(0, page, limit)
 	customers, total, err := u.customerRepo.Fetch(ctx, filter, offset, limit)
 	if err != nil {
 		return nil, domain.PaginationMeta{}, err
 	}
 
-	lastPage := int(total) / limit
-	if int(total)%limit != 0 {
-		lastPage++
-	}
-
-	meta := domain.PaginationMeta{
-		Total:       total,
-		CurrentPage: page,
-		LastPage:    lastPage,
-		PerPage:     limit,
-	}
+	_, meta := domain.CalculatePagination(total, page, limit)
 
 	_ = u.redisRepo.Set(ctx, cacheKey, customerFetchResponse{Customers: customers, Meta: meta}, 30*time.Minute)
 

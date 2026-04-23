@@ -106,6 +106,9 @@ func main() {
 	// Rate Limiting Middleware
 	r.Use(middleware.RateLimiter())
 
+	// Prometheus Monitoring Middleware
+	r.Use(middleware.PrometheusMiddleware())
+
 	// Define API routes
 	api := r.Group("/api/v1")
 	{

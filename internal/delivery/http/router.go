@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
@@ -19,6 +20,9 @@ func SetupRouter(r *gin.RouterGroup, db *gorm.DB, rdb *redis.Client, tokenMaker 
 
 	// Health Check
 	r.GET("/health", HealthCheck)
+
+	// Prometheus Metrics
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Initialize Repositories
 	employeeRepo := repository.NewEmployeeRepository(db)

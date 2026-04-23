@@ -22,31 +22,22 @@ func NewTransactionUsecase(r domain.TransactionRepository, pr domain.ProductRepo
 }
 
 func (u *transactionUsecase) Fetch(ctx context.Context, filter map[string]interface{}, page, limit int) ([]domain.Transaction, domain.PaginationMeta, error) {
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 10
-	}
+	// Pre-fetch count if needed, but here we get it from txRepo.Fetch
+	// We need a dummy offset/limit to get total first if we were doing it separately, 
+	// but txRepo.Fetch returns total. So we just need to handle page/limit defaults.
 
-	offset := (page - 1) * limit
+	// First pass to get total if the repo needs offset/limit
+	// In our case, we'll just calculate offset and then call repo.
+	
+	// We can use CalculatePagination even before repo call to get defaults/offset
+	offset, _ := domain.CalculatePagination(0, page, limit)
+	
 	transactions, total, err := u.txRepo.Fetch(ctx, filter, offset, limit)
 	if err != nil {
 		return nil, domain.PaginationMeta{}, err
 	}
 
-	lastPage := int(total) / limit
-	if int(total)%limit != 0 {
-		lastPage++
-	}
-
-	meta := domain.PaginationMeta{
-		Total:       total,
-		CurrentPage: page,
-		LastPage:    lastPage,
-		PerPage:     limit,
-	}
-
+	_, meta := domain.CalculatePagination(total, page, limit)
 	return transactions, meta, nil
 }
 
