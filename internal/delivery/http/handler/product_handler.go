@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/azmeela/sispeg-api/internal/delivery/http/dto"
 	"github.com/azmeela/sispeg-api/internal/domain"
@@ -30,6 +31,19 @@ func (h *ProductHandler) GetInventory(c *gin.Context) {
 	if codeID := c.Query("product_code_id"); codeID != "" {
 		id, _ := strconv.Atoi(codeID)
 		filter["product_code_id"] = id
+	}
+
+	if codeIDs := c.Query("product_code_ids"); codeIDs != "" {
+		idStrings := strings.Split(codeIDs, ",")
+		var ids []int
+		for _, s := range idStrings {
+			if id, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			filter["product_code_ids"] = ids
+		}
 	}
 
 	if customerTypeID := c.Query("customer_type_id"); customerTypeID != "" {

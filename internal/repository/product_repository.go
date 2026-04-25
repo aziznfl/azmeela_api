@@ -87,6 +87,10 @@ func (r *productRepository) FetchCodes(ctx context.Context, filter map[string]in
 		query = query.Where("id_product_code = ?", codeID)
 	}
 
+	if codeIDs, ok := filter["product_code_ids"].([]int); ok && len(codeIDs) > 0 {
+		query = query.Where("id_product_code IN ?", codeIDs)
+	}
+
 	err := query.Order("name_product_code ASC").Find(&codes).Error
 	return codes, err
 }
