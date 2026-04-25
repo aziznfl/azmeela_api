@@ -6,6 +6,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/azmeela/sispeg-api/internal/config"
 	httpDelivery "github.com/azmeela/sispeg-api/internal/delivery/http"
@@ -104,10 +105,13 @@ func main() {
 	r.Use(middleware.RecoveryMiddleware())
 
 	// Rate Limiting Middleware
-	r.Use(middleware.RateLimiter())
+	r.Use(middleware.RateLimiter("/api/v1/products/inventory"))
 
 	// Prometheus Monitoring Middleware
 	r.Use(middleware.PrometheusMiddleware())
+
+	// Prometheus metrics endpoint at root (standard scrape path, no auth/rate-limit)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Define API routes
 	api := r.Group("/api/v1")
