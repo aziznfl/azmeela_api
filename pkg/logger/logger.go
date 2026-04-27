@@ -15,7 +15,13 @@ func InitLogger() {
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}
-	handler := slog.NewTextHandler(os.Stdout, opts)
+
+	var handler slog.Handler
+	if os.Getenv("GIN_MODE") == "release" {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, opts)
+	}
 	Log = &LoggerWrapper{slog.New(handler)}
 }
 
