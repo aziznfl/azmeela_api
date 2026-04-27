@@ -96,14 +96,13 @@ func main() {
 	if cfg.GinMode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	r := gin.New()
+	r := gin.Default()
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
 
-	// Middleware
-	r.Use(middleware.LoggerMiddleware())
-	r.Use(middleware.RecoveryMiddleware())
+	// CORS Middleware (allow Vue frontend on different port)
 	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.RecoveryMiddleware())
 
 	// Rate Limiting Middleware
 	r.Use(middleware.RateLimiter("/api/v1/products/inventory"))
