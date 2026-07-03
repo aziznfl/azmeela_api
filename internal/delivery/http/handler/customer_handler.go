@@ -5,6 +5,7 @@ import (
 
 	"github.com/azmeela/sispeg-api/internal/delivery/http/dto"
 	"github.com/azmeela/sispeg-api/internal/domain"
+	"github.com/azmeela/sispeg-api/pkg/token"
 	"github.com/gin-gonic/gin"
 )
 
@@ -191,6 +192,9 @@ func (h *CustomerHandler) CreateAddress(c *gin.Context) {
 		return
 	}
 
+	payload := c.MustGet("authorization_payload").(*token.Payload)
+	req.AdminID = payload.UserID
+
 	ctx := c.Request.Context()
 	result, err := h.Usecase.CreateAddress(ctx, &req)
 	if err != nil {
@@ -210,6 +214,9 @@ func (h *CustomerHandler) UpdateAddress(c *gin.Context) {
 	if !BindJSON(c, &req) {
 		return
 	}
+
+	payload := c.MustGet("authorization_payload").(*token.Payload)
+	req.AdminID = payload.UserID
 
 	ctx := c.Request.Context()
 	result, err := h.Usecase.UpdateAddress(ctx, id, &req)

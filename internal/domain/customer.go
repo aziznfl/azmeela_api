@@ -39,7 +39,7 @@ func (Customer) TableName() string {
 type CustomerAddress struct {
 	ID            int       `gorm:"primaryKey;column:id_customer_alamat;autoIncrement"`
 	CustomerID    int       `gorm:"column:id_customer;not null"`
-	AdminID       *int      `gorm:"column:id_admin"`
+	AdminID       int       `gorm:"column:id_admin;not null;default:1"`
 	Country       string    `gorm:"column:negara;type:varchar(100);not null"`
 	Province      string    `gorm:"column:provinsi;type:varchar(100);not null"`
 	City          string    `gorm:"column:kota;type:varchar(100);not null"`
@@ -56,6 +56,7 @@ func (CustomerAddress) TableName() string {
 
 type CustomerAddressRequest struct {
 	CustomerID    int     `json:"customer_id"`
+	AdminID       int     `json:"-"`
 	Country       string  `json:"country" binding:"required"`
 	Province      string  `json:"province" binding:"required"`
 	City          string  `json:"city" binding:"required"`

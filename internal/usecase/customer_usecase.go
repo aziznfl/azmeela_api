@@ -165,6 +165,7 @@ func (u *customerUsecase) GetAddresses(ctx context.Context, customerID int) ([]d
 func (u *customerUsecase) CreateAddress(ctx context.Context, req *domain.CustomerAddressRequest) (*domain.CustomerAddress, error) {
 	addr := &domain.CustomerAddress{
 		CustomerID:    req.CustomerID,
+		AdminID:       req.AdminID,
 		Country:       req.Country,
 		Province:      req.Province,
 		City:          req.City,
@@ -189,6 +190,7 @@ func (u *customerUsecase) UpdateAddress(ctx context.Context, id int, req *domain
 		return nil, err
 	}
 
+	addr.AdminID = req.AdminID
 	addr.Country = req.Country
 	addr.Province = req.Province
 	addr.City = req.City

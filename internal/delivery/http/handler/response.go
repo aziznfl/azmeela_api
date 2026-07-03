@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/azmeela/sispeg-api/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,6 +20,9 @@ func ErrorResponse(c *gin.Context, statusCode int, message string) {
 	humanMessage := message
 	switch statusCode {
 	case http.StatusInternalServerError:
+		if logger.Log != nil {
+			logger.Log.Error("Internal server error occurred", "error", message)
+		}
 		humanMessage = "Maaf, terjadi kendala pada sistem kami. Silakan coba beberapa saat lagi."
 	case http.StatusUnauthorized:
 		humanMessage = "Sesi Anda telah berakhir atau Anda tidak memiliki akses. Silakan login kembali."
